@@ -942,10 +942,10 @@ async def main(participant_name: str, enable_aec: bool = True):
         logger.info("Connecting to LiveKit room...")
         
         # Authenticate and get token
-        token, room_name = await authenticate(participant_name, ROOM_NAME)
+        token, room_name, livekit_url = await authenticate(participant_name, ROOM_NAME)
         logger.info(f"Generated token for participant: {participant_name}")
         
-        await room.connect(LIVEKIT_URL, token)
+        await room.connect(livekit_url, token)
         logger.info("connected to room %s", room.name)
         
         # Publish microphone track

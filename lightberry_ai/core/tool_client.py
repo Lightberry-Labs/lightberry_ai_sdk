@@ -97,7 +97,7 @@ class LightberryToolClient:
             fallback_room = os.environ.get("ROOM_NAME", "default-room")
             participant_name = f"sdk-user-{self.device_id}"
             
-            token, room_name = await authenticate(participant_name, fallback_room)
+            token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
             
             self._participant_name = participant_name
             self._room_name = room_name

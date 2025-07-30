@@ -6,12 +6,8 @@ This directory contains usage examples for the Lightberry SDK.
 
 1. Set up your environment variables in `.env`:
 ```bash
-LIGHTBERRY_API_KEY=lb_your_api_key
+LIGHTBERRY_API_KEY=your_api_key
 DEVICE_ID=your_device_id
-LIVEKIT_URL=wss://your-livekit-server.com
-LIVEKIT_API_KEY=your_livekit_api_key
-LIVEKIT_API_SECRET=your_livekit_api_secret
-ROOM_NAME=your_default_room
 ```
 
 2. Install dependencies:

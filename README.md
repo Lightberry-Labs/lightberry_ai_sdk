@@ -67,10 +67,6 @@ Create a `.env` file in your project:
 ```bash
 LIGHTBERRY_API_KEY=your_api_key
 DEVICE_ID=your_device_id
-LIVEKIT_URL=wss://your-livekit-server.com
-LIVEKIT_API_KEY=your_livekit_api_key
-LIVEKIT_API_SECRET=your_livekit_api_secret
-ROOM_NAME=default-room
 ```
 
 ### Client Parameters
@@ -179,7 +175,7 @@ WARNING: local_tool_responses.py not found - no tools will be available
 Use `list_devices.py` from the original project to find the correct `device_index`.
 
 ### Connection Issues
-Verify your `.env` file contains valid credentials and LiveKit server URLs.
+Verify your `.env` file contains valid `LIGHTBERRY_API_KEY` and `DEVICE_ID`.
 
 ## License
 

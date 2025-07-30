@@ -416,9 +416,9 @@ async def main_with_tools(
         
         # Connect to LiveKit room
         logger.info("Connecting to LiveKit room...")
-        token, room_name = await authenticate(participant_name, stream_audio.ROOM_NAME)
+        token, room_name, livekit_url = await authenticate(participant_name, stream_audio.ROOM_NAME)
         
-        await room.connect(stream_audio.LIVEKIT_URL, token)
+        await room.connect(livekit_url, token)
         logger.info("connected to room %s", room.name)
         
         # Register RPC method handler after connection
