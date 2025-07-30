@@ -1,47 +1,54 @@
 # Lightberry SDK Examples
 
-This directory contains usage examples for the Lightberry SDK.
+This directory contains working examples demonstrating how to use the Lightberry SDK.
 
-## Prerequisites
+## Setup
 
-1. Set up your environment variables in `.env`:
+1. **Install the SDK** (see main README for installation instructions)
+
+2. **Configure environment variables** in your project's `.env` file:
 ```bash
 LIGHTBERRY_API_KEY=your_api_key
 DEVICE_ID=your_device_id
 ```
 
-2. Install dependencies:
+3. **Copy tool definitions** to your working directory:
 ```bash
-pip install -r requirements.txt
+cp examples/local_tool_responses.py .
 ```
 
 ## Examples
 
 ### Basic Audio Streaming (`basic_audio_example.py`)
 
-Audio-only streaming without tool support:
+**Purpose**: Demonstrates audio-only streaming without tool support.
 
+**Usage**:
 ```bash
 python examples/basic_audio_example.py
 ```
 
-This example demonstrates:
-- Creating a `LightberryBasicClient` 
-- Connecting with API key and device ID
+**What it shows**:
+- Creating and configuring a `LightberryBasicClient`
+- Authenticating with API key and device ID
 - Starting audio streaming with echo cancellation
+- Handling connection lifecycle (connect → stream → disconnect)
 
 ### Tool-Enabled Streaming (`tool_client_example.py`)
 
-Audio streaming with tool execution support:
+**Purpose**: Demonstrates audio streaming with AI tool execution capabilities.
 
+**Usage**:
 ```bash
+# Ensure local_tool_responses.py is in your current directory
 python examples/tool_client_example.py
 ```
 
-This example demonstrates:
-- Creating a `LightberryToolClient`
+**What it shows**:
+- Creating and configuring a `LightberryToolClient`
 - Automatic loading of tools from `local_tool_responses.py`
-- Handling remote tool calls via data channels
+- Handling remote AI tool calls via data channels
+- Integration between AI agent decisions and local hardware/software
 
 ## Custom Tools
 
@@ -69,33 +76,34 @@ The example `local_tool_responses.py` includes:
 
 Tools are automatically available to `LightberryToolClient` instances.
 
-## Usage Patterns
+## Running the Examples
 
-### Basic Usage
-```python
-from lightberry_ai import LightberryBasicClient
+### From the SDK Directory
+```bash
+# Run from the lightberry_ai_sdk directory
+cd lightberry_ai_sdk
 
-client = LightberryBasicClient(api_key=api_key, device_id=device_id)
-await client.connect()
-await client.start_streaming()
+# Basic audio streaming
+python examples/basic_audio_example.py
+
+# Tool-enabled streaming (requires local_tool_responses.py in current directory)
+cp examples/local_tool_responses.py .
+python examples/tool_client_example.py
 ```
 
-### Tool-Enabled Usage
-```python
-from lightberry_ai import LightberryToolClient
+### From Your Project Directory
+```bash
+# Copy tools file to your project
+cp lightberry_ai_sdk/examples/local_tool_responses.py .
 
-client = LightberryToolClient(api_key=api_key, device_id=device_id)
-await client.connect()
-await client.start_streaming()  # Tools automatically available
+# Run examples with absolute paths
+python lightberry_ai_sdk/examples/basic_audio_example.py
+python lightberry_ai_sdk/examples/tool_client_example.py
 ```
 
-### Configuration Options
-```python
-client = LightberryBasicClient(
-    api_key=api_key,
-    device_id=device_id,
-    device_index=1,           # Specific audio device
-    enable_aec=False,         # Disable echo cancellation
-    log_level="DEBUG"         # Verbose logging
-)
-```
+## Key Configuration Options
+
+Both examples support common configuration parameters:
+- `device_index=None` - Audio device selection (None for system default)
+- `enable_aec=True` - Acoustic echo cancellation
+- `log_level="INFO"` - Logging verbosity (DEBUG, INFO, WARNING, ERROR)

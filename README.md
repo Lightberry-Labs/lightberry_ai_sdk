@@ -101,11 +101,12 @@ def handle_arm_movement(x: float, y: float, z: float) -> dict:
     robot_controller.move_arm_to(x, y, z)
     return {"result": "success", "position": [x, y, z]}
 
-@tool(name="check_sensors", description="Reads sensor data")
-def read_sensors() -> dict:
-    # Integration with your sensor systems
-    sensor_data = hardware.get_all_sensors()
-    return {"temperature": sensor_data.temp, "battery": sensor_data.battery}
+@tool(name="add_to_order", description="Add item to coffee order")
+def add_coffee_item(coffee_type: str, milk_type: str, size: str = "medium") -> dict:
+    # Integration with coffee machine API
+    coffee_machine.add_order_item(coffee_type, milk_type, size)
+    print(f"☕ Added {size} {coffee_type} with {milk_type} milk to order")
+    return {"result": "success", "item_added": True}
 ```
 
 ### Workflow
@@ -118,6 +119,15 @@ This separation allows you to:
 - Configure AI behavior centrally via the dashboard
 - Implement tool execution using your existing codebase and hardware integrations
 - Update tool logic locally without changing server configuration
+
+### Current Limitations
+
+**⚠️ Tool Response Feedback**: The AI agent currently does not receive feedback from locally executed tool calls. While your tools execute successfully and can return data, this information is not sent back to the AI agent for follow-up conversations.
+
+**🚀 Coming Soon**: Tool response feedback functionality is in development and will allow the AI agent to:
+- Receive and process tool execution results
+- Make follow-up decisions based on tool outcomes
+- Provide more contextual responses about completed actions
 
 **Important**: The `local_tool_responses.py` file must be in the same directory where you run your script.
 
