@@ -81,16 +81,43 @@ Both client classes support these parameters:
 
 ## Custom Tools
 
-For `LightberryToolClient`, create a `local_tool_responses.py` file in your project directory:
+### Tool Architecture
+
+Tools in Lightberry AI follow a two-part architecture:
+
+1. **Server-side Definition**: Tools are defined and configured on the **Lightberry Dashboard** where you specify:
+   - Tool names and descriptions
+   - Parameter schemas and types
+   - When the AI agent should call each tool
+   
+2. **Client-side Implementation**: The `local_tool_responses.py` file defines **how** each tool executes on your device:
 
 ```python
 from local_tool_responses import tool
 
-@tool(name="my_tool", description="Does something useful")
-def my_function(param1: str, param2: int = 42) -> dict:
-    print(f"Tool called: {param1}, {param2}")
-    return {"result": "success", "data": param1}
+@tool(name="move_robot_arm", description="Moves robot arm to position")
+def handle_arm_movement(x: float, y: float, z: float) -> dict:
+    # Your implementation here - integrate with existing robot control
+    robot_controller.move_arm_to(x, y, z)
+    return {"result": "success", "position": [x, y, z]}
+
+@tool(name="check_sensors", description="Reads sensor data")
+def read_sensors() -> dict:
+    # Integration with your sensor systems
+    sensor_data = hardware.get_all_sensors()
+    return {"temperature": sensor_data.temp, "battery": sensor_data.battery}
 ```
+
+### Workflow
+
+1. **Configure on Dashboard**: Define tools, parameters, and AI behavior on the Lightberry Dashboard
+2. **Implement Locally**: Create `local_tool_responses.py` with functions that handle the actual execution
+3. **Tool Matching**: When the AI calls a tool, it's routed to your local implementation by name
+
+This separation allows you to:
+- Configure AI behavior centrally via the dashboard
+- Implement tool execution using your existing codebase and hardware integrations
+- Update tool logic locally without changing server configuration
 
 **Important**: The `local_tool_responses.py` file must be in the same directory where you run your script.
 
