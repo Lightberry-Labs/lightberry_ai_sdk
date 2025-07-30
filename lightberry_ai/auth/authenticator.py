@@ -22,7 +22,8 @@ LIGHTBERRY_API_KEY = os.environ.get("LIGHTBERRY_API_KEY")
 DEFAULT_LIVEKIT_URL = "wss://lb-ub8o0q4v.livekit.cloud"
 
 # Auth API configuration
-AUTH_API_URL = "https://lightberry.vercel.app/api/authenticate/{}"
+#AUTH_API_URL = "https://lightberry.vercel.app/api/authenticate/{}"
+AUTH_API_URL = "https://dev.lightberry.vercel.app/api/authenticate/{}"
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ async def get_credentials_from_api(participant_name: str) -> Tuple[Optional[str]
     # TODO: Add LIGHTBERRY_API_KEY to payload when server side is ready
     # Current payload format maintained for compatibility
     api_key = LIGHTBERRY_API_KEY  # Reference API key for future use
-    payload = {"username": participant_name, "x-device-api-key": participant_name}
+    payload = {"username": participant_name, "x-device-api-key": api_key}
     logger.info(f"Attempting to fetch credentials from {url} for username '{participant_name}', device_id '{DEVICE_ID}'")
     
     try:
