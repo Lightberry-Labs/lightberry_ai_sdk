@@ -11,7 +11,7 @@ Tools are defined in local_tool_responses.py using the @tool decorator.
 import asyncio
 import os
 from dotenv import load_dotenv
-from lightberry_ai import LightberryToolClient
+from lightberry_ai import LBToolClient
 
 async def main():
     """Tool-enabled audio streaming example."""
@@ -31,7 +31,7 @@ async def main():
     print(f"Device ID: {device_id}")
     
     # Create client with audio configuration
-    client = LightberryToolClient(
+    client = LBToolClient(
         api_key=api_key,
         device_id=device_id,
         device_index=None,        # Use default audio device
@@ -52,7 +52,7 @@ async def main():
         print("Tools from local_tool_responses.py are now available for remote execution")
         print("Press Ctrl+C to stop\n")
         
-        await client.start_streaming()
+        await client.enable_audio()
         
     except KeyboardInterrupt:
         print("\nStopping audio streaming...")

@@ -19,7 +19,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-class LightberryToolClient:
+class LBToolClient:
     """
     Audio streaming client with tool execution support.
     
@@ -33,6 +33,7 @@ class LightberryToolClient:
         device_index: Audio device index (None for system default)
         enable_aec: Enable acoustic echo cancellation (default: True)
         log_level: Logging verbosity level (DEBUG, INFO, WARNING, ERROR)
+        assistant_name: Optional assistant name to override configured assistant (testing only)
     """
     
     def __init__(
@@ -41,13 +42,15 @@ class LightberryToolClient:
         device_id: str,
         device_index: Optional[int] = None,
         enable_aec: bool = True,
-        log_level: str = "INFO"
+        log_level: str = "INFO",
+        assistant_name: Optional[str] = None
     ):
         self.api_key = api_key
         self.device_id = device_id
         self.device_index = device_index
         self.enable_aec = enable_aec
         self.log_level = log_level
+        self.assistant_name = assistant_name
         
         # Internal configuration
         self._data_channel_name = "tool_calls"  # Fixed channel name
@@ -58,7 +61,7 @@ class LightberryToolClient:
         
         # Configure logging
         logging.basicConfig(level=getattr(logging, log_level.upper()))
-        logger.info(f"LightberryToolClient initialized with AEC: {enable_aec}")
+        logger.info(f"LBToolClient initialized with AEC: {enable_aec}")
         
         # Load tools from local_tool_responses.py
         self._load_tools()
@@ -97,7 +100,7 @@ class LightberryToolClient:
             fallback_room = os.environ.get("ROOM_NAME", "default-room")
             participant_name = f"sdk-user-{self.device_id}"
             
-            token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
+            token, room_name, livekit_url = await authenticate(participant_name, fallback_room, self.assistant_name)
             
             self._participant_name = participant_name
             self._room_name = room_name
@@ -111,19 +114,20 @@ class LightberryToolClient:
             else:
                 raise e
     
-    async def start_streaming(self) -> None:
+    async def enable_audio(self) -> None:
         """
-        Start audio streaming with tool execution support.
+        Enable bidirectional audio streaming with tool execution support.
         
-        Begins audio streaming and enables tool execution via data channels.
-        Tools defined in local_tool_responses.py will be automatically available.
-        This method will run until manually stopped or interrupted.
+        Begins audio streaming, sets up the hardware output device, and enables
+        tool execution via data channels. Tools defined in local_tool_responses.py
+        will be automatically available. This method will run until manually
+        stopped or interrupted.
         
         Raises:
             RuntimeError: If called before connect()
         """
         if not self._participant_name:
-            raise RuntimeError("Must call connect() before start_streaming()")
+            raise RuntimeError("Must call connect() before enable_audio()")
             
         logger.info("Starting audio streaming with tool support...")
         

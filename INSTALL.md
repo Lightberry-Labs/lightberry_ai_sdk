@@ -36,17 +36,17 @@ pip install lightberry-ai
 ## Usage After Installation
 
 ```python
-from lightberry_ai import LightberryBasicClient, LightberryToolClient
+from lightberry_ai import LBBasicClient, LBToolClient
 
 # Basic client
-client = LightberryBasicClient(api_key="your_key", device_id="your_device")
+client = LBBasicClient(api_key="your_key", device_id="your_device")
 await client.connect()
-await client.start_streaming()
+await client.enable_audio()
 
 # Tool client
-tool_client = LightberryToolClient(api_key="your_key", device_id="your_device")
+tool_client = LBToolClient(api_key="your_key", device_id="your_device")
 await tool_client.connect() 
-await tool_client.start_streaming()
+await tool_client.enable_audio()
 ```
 
 ## Requirements

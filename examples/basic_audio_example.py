@@ -8,7 +8,7 @@ This example demonstrates how to use LightberryBasicClient for audio-only stream
 import asyncio
 import os
 from dotenv import load_dotenv
-from lightberry_ai import LightberryBasicClient
+from lightberry_ai import LBBasicClient
 
 async def main():
     """Basic audio streaming example."""
@@ -29,7 +29,7 @@ async def main():
     print(f"API Key: {api_key[:8]}..." if api_key else "Not set")
     
     # Create client with audio configuration
-    client = LightberryBasicClient(
+    client = LBBasicClient(
         api_key=api_key,
         device_id=device_id,
         device_index=None,        # Use default audio device
@@ -48,7 +48,7 @@ async def main():
         print("\nStarting audio streaming...")
         print("Press Ctrl+C to stop\n")
         
-        await client.start_streaming()
+        await client.enable_audio()
         
     except KeyboardInterrupt:
         print("\nStopping audio streaming...")

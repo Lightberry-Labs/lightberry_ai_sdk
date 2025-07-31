@@ -25,17 +25,17 @@ pip install -e .
 
 ```python
 import asyncio
-from lightberry_ai import LightberryBasicClient
+from lightberry_ai import LBBasicClient
 
 async def main():
-    client = LightberryBasicClient(
+    client = LBBasicClient(
         api_key="your_api_key",
         device_id="your_device_id",
         enable_aec=True
     )
     
     await client.connect()
-    await client.start_streaming()
+    await client.enable_audio()
 
 asyncio.run(main())
 ```
@@ -44,16 +44,16 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from lightberry_ai import LightberryToolClient
+from lightberry_ai import LBToolClient
 
 async def main():
-    client = LightberryToolClient(
+    client = LBToolClient(
         api_key="your_api_key", 
         device_id="your_device_id"
     )
     
     await client.connect()
-    await client.start_streaming()  # Tools automatically available
+    await client.enable_audio()  # Tools automatically available
 
 asyncio.run(main())
 ```
@@ -78,6 +78,7 @@ Both client classes support these parameters:
 - `device_index` (int, optional): Audio device index (None for default)
 - `enable_aec` (bool): Enable acoustic echo cancellation (default: True)
 - `log_level` (str): Logging level - DEBUG, INFO, WARNING, ERROR (default: INFO)
+- `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!)
 
 ## Custom Tools
 
@@ -137,6 +138,7 @@ Complete working examples are available in the [`examples/`](examples/) director
 
 - **[`basic_audio_example.py`](examples/basic_audio_example.py)** - Audio-only streaming
 - **[`tool_client_example.py`](examples/tool_client_example.py)** - Tool-enabled streaming
+- **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Testing with different assistants
 - **[`local_tool_responses.py`](examples/local_tool_responses.py)** - Example tool definitions
 
 ### Running Examples

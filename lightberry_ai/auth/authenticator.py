@@ -31,12 +31,13 @@ logger = logging.getLogger(__name__)
 
 
 
-async def get_credentials_from_api(participant_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+async def get_credentials_from_api(participant_name: str, assistant_name: Optional[str] = None) -> Tuple[Optional[str], Optional[str], Optional[str]]:
     """
     Fetches LiveKit token, room name, and URL from the authentication API.
     
     Args:
         participant_name: The participant name (username)
+        assistant_name: Optional assistant name to override configured assistant (testing only)
     
     Returns:
         Tuple of (token, room_name, livekit_url) or (None, None, None) if failed
@@ -51,7 +52,10 @@ async def get_credentials_from_api(participant_name: str) -> Tuple[Optional[str]
     # Current payload format maintained for compatibility
     api_key = LIGHTBERRY_API_KEY  # Reference API key for future use
     payload = {"username": participant_name, "x-device-api-key": api_key}
-    logger.info(f"Attempting to fetch credentials from {url} for username '{participant_name}', device_id '{DEVICE_ID}'")
+    if assistant_name:
+        payload["assistant_name"] = assistant_name
+        logger.warning("⚠️  WARNING: Manually overwriting the assistant to a different one than is configured. Use this only for testing.")
+    logger.info(f"Attempting to fetch credentials from {url} for username '{participant_name}', device_id '{DEVICE_ID}'{', assistant: ' + assistant_name if assistant_name else ''}")
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -79,19 +83,20 @@ async def get_credentials_from_api(participant_name: str) -> Tuple[Optional[str]
         return None, None, None
 
 
-async def authenticate(participant_name: str, fallback_room_name: str) -> Tuple[str, str, str]:
+async def authenticate(participant_name: str, fallback_room_name: str, assistant_name: Optional[str] = None) -> Tuple[str, str, str]:
     """
     Unified authentication function that tries remote API first, then falls back to local token generation.
     
     Args:
         participant_name: The participant name (username)
         fallback_room_name: Room name to use if API fails
+        assistant_name: Optional assistant name to override configured assistant (testing only)
     
     Returns:
         Tuple of (token, room_name, livekit_url)
     """
     # Try to get credentials from auth API first
-    api_token, api_room_name, api_url = await get_credentials_from_api(participant_name)
+    api_token, api_room_name, api_url = await get_credentials_from_api(participant_name, assistant_name)
     
     if api_token and api_room_name:
         logger.info(f"Using auth API credentials for room: {api_room_name}")

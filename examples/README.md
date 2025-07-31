@@ -29,7 +29,7 @@ python examples/basic_audio_example.py
 ```
 
 **What it shows**:
-- Creating and configuring a `LightberryBasicClient`
+- Creating and configuring a `LBBasicClient`
 - Authenticating with API key and device ID
 - Starting audio streaming with echo cancellation
 - Handling connection lifecycle (connect → stream → disconnect)
@@ -45,7 +45,7 @@ python examples/tool_client_example.py
 ```
 
 **What it shows**:
-- Creating and configuring a `LightberryToolClient`
+- Creating and configuring a `LBToolClient`
 - Automatic loading of tools from `local_tool_responses.py`
 - Handling remote AI tool calls via data channels
 - Integration between AI agent decisions and local hardware/software
@@ -74,7 +74,7 @@ The example `local_tool_responses.py` includes:
 - Coffee order tools: `add_to_order`, `get_current_order`, `amend_order`, `send_order`
 - `end_session` - Gracefully disconnect from the session
 
-Tools are automatically available to `LightberryToolClient` instances.
+Tools are automatically available to `LBToolClient` instances.
 
 ## Running the Examples
 
@@ -107,3 +107,18 @@ Both examples support common configuration parameters:
 - `device_index=None` - Audio device selection (None for system default)
 - `enable_aec=True` - Acoustic echo cancellation
 - `log_level="INFO"` - Logging verbosity (DEBUG, INFO, WARNING, ERROR)
+- `assistant_name=None` - Override configured assistant (⚠️  testing only!)
+
+### Assistant Override Example (`assistant_override_example.py`)
+
+**Purpose**: Demonstrates how to override the configured assistant for testing.
+
+**Usage**:
+```bash
+python examples/assistant_override_example.py
+```
+
+**What it shows**:
+- Using the `assistant_name` parameter to specify a different assistant
+- ⚠️  WARNING: This feature is for testing only and will show a warning
+- Useful for testing different assistant versions without changing device config
