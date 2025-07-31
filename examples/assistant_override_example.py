@@ -7,6 +7,9 @@ This example demonstrates how to override the configured assistant with a custom
 The assistant_name parameter allows you to specify a different assistant than the one
 configured for your device. This is useful for testing different assistants without
 changing your device configuration.
+
+Note: If multiple assistants with the same name exist on your account, the system will
+select the first one found in the lookup.
 """
 
 import asyncio

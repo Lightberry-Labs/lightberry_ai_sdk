@@ -78,7 +78,7 @@ Both client classes support these parameters:
 - `device_index` (int, optional): Audio device index (None for default)
 - `enable_aec` (bool): Enable acoustic echo cancellation (default: True)
 - `log_level` (str): Logging level - DEBUG, INFO, WARNING, ERROR (default: INFO)
-- `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!)
+- `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!) - If multiple assistants with the same name exist, the first one found will be used
 
 ## Custom Tools
 
@@ -164,7 +164,7 @@ Audio-only streaming client.
 
 **Methods:**
 - `await connect()` - Authenticate and connect to LiveKit room
-- `await start_streaming()` - Begin audio streaming (blocks until stopped)
+- `await enable_audio()` - Enable bidirectional audio streaming (blocks until stopped)
 - `await disconnect()` - Disconnect and cleanup
 
 **Properties:**

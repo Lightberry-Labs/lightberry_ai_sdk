@@ -122,3 +122,5 @@ python examples/assistant_override_example.py
 - Using the `assistant_name` parameter to specify a different assistant
 - ⚠️  WARNING: This feature is for testing only and will show a warning
 - Useful for testing different assistant versions without changing device config
+
+**Important Note**: If multiple assistants with the same name exist on your account, the system will select the first one found in the lookup.

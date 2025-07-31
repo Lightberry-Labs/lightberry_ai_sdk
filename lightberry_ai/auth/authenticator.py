@@ -37,7 +37,8 @@ async def get_credentials_from_api(participant_name: str, assistant_name: Option
     
     Args:
         participant_name: The participant name (username)
-        assistant_name: Optional assistant name to override configured assistant (testing only)
+        assistant_name: Optional assistant name to override configured assistant (testing only).
+                       If multiple assistants with the same name exist, the first one found will be used.
     
     Returns:
         Tuple of (token, room_name, livekit_url) or (None, None, None) if failed
@@ -90,7 +91,8 @@ async def authenticate(participant_name: str, fallback_room_name: str, assistant
     Args:
         participant_name: The participant name (username)
         fallback_room_name: Room name to use if API fails
-        assistant_name: Optional assistant name to override configured assistant (testing only)
+        assistant_name: Optional assistant name to override configured assistant (testing only).
+                       If multiple assistants with the same name exist, the first one found will be used.
     
     Returns:
         Tuple of (token, room_name, livekit_url)
