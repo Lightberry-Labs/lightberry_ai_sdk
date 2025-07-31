@@ -36,7 +36,7 @@ async def main():
         device_id=device_id,
         device_index=None,        # Use default audio device
         enable_aec=True,          # Enable echo cancellation
-        log_level="INFO"          # Set logging level
+        log_level="WARNING"          # Set logging level
     )
     
     try:
