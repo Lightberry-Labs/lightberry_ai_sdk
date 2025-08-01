@@ -672,6 +672,56 @@ class AudioStreamer:
                         self.logger.warning(f"Error processing reverse stream with AEC: {e}")
                     # Only log this error for the first few callbacks to avoid spam
     
+    def should_use_terminal_meter(self):
+        """Check if we should use terminal meter based on current log level."""
+        # Get the effective logging level for our logger
+        effective_level = self.logger.getEffectiveLevel()
+        # Use terminal meter for WARNING (30) and ERROR (40) levels
+        return effective_level >= logging.WARNING
+    
+    def print_audio_meter_adaptive(self):
+        """Audio meter that adapts based on logging level."""
+        if self.should_use_terminal_meter():
+            # Use real-time terminal meter for WARNING/ERROR levels
+            self.print_audio_meter()
+        else:
+            # Use logging-friendly meter for INFO/DEBUG levels
+            self.print_audio_meter_logging()
+    
+    def print_audio_meter_logging(self):
+        """Audio meter display that uses logging instead of terminal output."""
+        import time
+        
+        # Only log every 2 seconds to avoid spam
+        current_time = time.time()
+        if hasattr(self, 'last_meter_log') and current_time - self.last_meter_log < 2.0:
+            return
+        
+        self.last_meter_log = current_time
+        
+        # Build meter info
+        with self.mute_lock:
+            is_muted = self.is_muted
+        
+        status = "MUTED" if is_muted else "LIVE"
+        
+        # Format local meter
+        local_text = f"Mic {status}: {self.micro_db:.1f}dB"
+        
+        # Format participant meters
+        with self.participants_lock:
+            participants_info = []
+            for participant_id, info in self.participants.items():
+                name = info.get('name', 'Unknown')
+                db_level = info.get('db_level', INPUT_DB_MIN)
+                participants_info.append(f"{name}: {db_level:.1f}dB")
+        
+        if participants_info:
+            remote_text = " | ".join(participants_info)
+            self.logger.info(f"Audio Levels - Local: {local_text} | Remote: {remote_text}")
+        else:
+            self.logger.info(f"Audio Levels - Local: {local_text} | Remote: (no active participants)")
+    
     def print_audio_meter(self):
         """Print dB meter with live/mute indicator - supports both curses and terminal modes"""
         if not self.meter_running:
@@ -771,14 +821,6 @@ async def main(participant_name: str, enable_aec: bool = True):
     # Get the running event loop
     loop = asyncio.get_running_loop()
     
-    # Verify environment
-    logger.info(f"LIVEKIT_URL: {LIVEKIT_URL}")
-    logger.info(f"ROOM_NAME: {ROOM_NAME}")
-    
-    if not LIVEKIT_URL or not ROOM_NAME:
-        logger.error("Missing LIVEKIT_URL or ROOM_NAME environment variables")
-        return
-    
     # Create audio streamer with loop reference
     streamer = AudioStreamer(enable_aec, loop=loop)
     
@@ -816,10 +858,22 @@ async def main(participant_name: str, enable_aec: bool = True):
     # Meter display task
     async def meter_task():
         """Display audio level meter"""
-        logger.info("Meter task started")
+        use_terminal_meter = streamer.should_use_terminal_meter()
+        mode = "terminal" if use_terminal_meter else "logging"
+        logger.info(f"Meter display task started ({mode} mode)")
+        
         while streamer.running and streamer.meter_running:
-            streamer.print_audio_meter()
-            await asyncio.sleep(1 / FPS)
+            # Use adaptive meter method that chooses based on log level
+            streamer.print_audio_meter_adaptive()
+            
+            # Different sleep intervals based on mode
+            if use_terminal_meter:
+                # Terminal mode: update frequently for real-time display
+                await asyncio.sleep(1.0 / FPS)  # ~60 FPS like original
+            else:
+                # Logging mode: check frequently but only log every 2 seconds
+                await asyncio.sleep(0.1)
+                
         logger.info("Meter task ended")
     
     # Function to handle received audio frames
@@ -927,16 +981,20 @@ async def main(participant_name: str, enable_aec: bool = True):
         logger.info(f"Disconnected from LiveKit room: {reason}")
 
     try:
-        # Start audio devices
-        logger.info("Starting audio devices...")
-        streamer.start_audio_devices()
-        
         # Start keyboard handler
         logger.info("Starting keyboard handler...")
         streamer.start_keyboard_handler()
         
-        # Initialize terminal for stable UI
-        streamer.init_terminal()
+        # Configure meters based on logging level
+        use_terminal_meter = streamer.should_use_terminal_meter()
+        if use_terminal_meter:
+            logger.info("Using real-time terminal meters for WARNING/ERROR log level")
+            # Initialize terminal UI for real-time display
+            streamer.init_terminal()
+        else:
+            logger.info("Using logging-based meters for INFO/DEBUG log level")
+        
+        streamer.meter_running = True
         
         # Connect to LiveKit room
         logger.info("Connecting to LiveKit room...")
@@ -964,6 +1022,11 @@ async def main(participant_name: str, enable_aec: bool = True):
         # Start background tasks
         logger.info("Starting background tasks...")
         audio_task = asyncio.create_task(audio_processing_task())
+        
+        # Start audio devices AFTER processing task is ready
+        logger.info("Starting audio devices...")
+        streamer.start_audio_devices()
+        
         meter_display_task = asyncio.create_task(meter_task())
         
         logger.info("=== Audio streaming started. Press Ctrl+C to stop. ===")

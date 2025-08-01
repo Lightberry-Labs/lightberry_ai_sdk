@@ -41,7 +41,7 @@ class LBBasicClient:
         device_id: str,
         device_index: Optional[int] = None,
         enable_aec: bool = True,
-        log_level: str = "INFO",
+        log_level: str = "WARNING",
         assistant_name: Optional[str] = None
     ):
         self.api_key = api_key
