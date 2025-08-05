@@ -147,7 +147,8 @@ async def main_with_tools(
     participant_name: str = "python-user",
     device_index: Optional[int] = None,
     enable_aec: bool = True,
-    data_channel_name: Optional[str] = None
+    data_channel_name: Optional[str] = None,
+    initial_transcripts: Optional[list] = None
 ):
     """
     Main function with tool support via data channel.
@@ -313,6 +314,22 @@ async def main_with_tools(
     @room.on("connected")
     def on_connected():
         logger.info("Successfully connected to LiveKit room")
+        # Send initial transcripts if provided
+        if initial_transcripts:
+            async def send_transcripts():
+                try:
+                    transcript_message = {
+                        "type": "initial_transcripts",
+                        "transcripts": initial_transcripts
+                    }
+                    await room.local_participant.publish_data(
+                        json.dumps(transcript_message).encode(),
+                        topic="initialization"
+                    )
+                    logger.info(f"📝 Sent {len(initial_transcripts)} initial transcripts to server")
+                except Exception as e:
+                    logger.error(f"Failed to send initial transcripts: {e}")
+            asyncio.create_task(send_transcripts())
 
     @room.on("disconnected")
     def on_disconnected(reason):
@@ -324,8 +341,18 @@ async def main_with_tools(
             data = data_packet.data
             topic = data_packet.topic
             participant = data_packet.participant
-            logger.info(f"Data received on topic '{topic}' from {participant.identity}")
-            handle_data_channel_message(data, topic)
+            
+            # Handle transcript streaming
+            if topic == "transcripts":
+                transcript = json.loads(data.decode())
+                logger.info(f"📝 Received transcript: {transcript.get('role')}: {transcript.get('content')[:50]}...")
+                # Store transcript for UI or logging
+                if not hasattr(streamer, 'transcript_buffer'):
+                    streamer.transcript_buffer = []
+                streamer.transcript_buffer.append(transcript)
+            else:
+                logger.info(f"Data received on topic '{topic}' from {participant.identity}")
+                handle_data_channel_message(data, topic)
         except Exception as e:
             logger.error(f"Error in data_received handler: {e}")
             logger.error(f"Data packet: {data_packet}")

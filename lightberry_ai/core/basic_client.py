@@ -33,6 +33,7 @@ class LBBasicClient:
         enable_aec: Enable acoustic echo cancellation (default: True)
         log_level: Logging verbosity level (DEBUG, INFO, WARNING, ERROR)
         assistant_name: Optional assistant name to override configured assistant (testing only)
+        initial_transcripts: Optional list of transcript dictionaries to initialize conversation history
     """
     
     def __init__(
@@ -42,7 +43,8 @@ class LBBasicClient:
         device_index: Optional[int] = None,
         enable_aec: bool = True,
         log_level: str = "WARNING",
-        assistant_name: Optional[str] = None
+        assistant_name: Optional[str] = None,
+        initial_transcripts: Optional[list] = None
     ):
         self.api_key = api_key
         self.device_id = device_id
@@ -50,6 +52,7 @@ class LBBasicClient:
         self.enable_aec = enable_aec
         self.log_level = log_level
         self.assistant_name = assistant_name
+        self.initial_transcripts = initial_transcripts
         
         # Set by authentication
         self._participant_name: Optional[str] = None
@@ -79,7 +82,15 @@ class LBBasicClient:
             fallback_room = os.environ.get("ROOM_NAME", "default-room")
             participant_name = f"sdk-user-{self.device_id}"
             
-            token, room_name, livekit_url = await authenticate(participant_name, fallback_room, self.assistant_name)
+            # Pass flag indicating if we have initial transcripts
+            has_initial_transcripts = self.initial_transcripts is not None
+            
+            token, room_name, livekit_url = await authenticate(
+                participant_name, 
+                fallback_room, 
+                self.assistant_name,
+                has_initial_transcripts=has_initial_transcripts
+            )
             
             self._participant_name = participant_name
             self._room_name = room_name
@@ -112,7 +123,8 @@ class LBBasicClient:
         # Call the existing main function with our parameters
         await audio_main(
             participant_name=self._participant_name,
-            enable_aec=self.enable_aec
+            enable_aec=self.enable_aec,
+            initial_transcripts=self.initial_transcripts
         )
     
     async def disconnect(self) -> None:

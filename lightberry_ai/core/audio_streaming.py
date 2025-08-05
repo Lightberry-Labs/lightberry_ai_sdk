@@ -21,6 +21,7 @@ import select
 import termios
 import tty
 import curses
+import json
 from dotenv import load_dotenv
 from signal import SIGINT, SIGTERM
 from livekit import rtc
@@ -814,7 +815,7 @@ class AudioStreamer:
                 sys.stdout.write("\033[2K\r\033[?25h")
                 sys.stdout.flush()
 
-async def main(participant_name: str, enable_aec: bool = True):
+async def main(participant_name: str, enable_aec: bool = True, initial_transcripts: list = None):
     logger = logging.getLogger(__name__)
     logger.info("=== STARTING AUDIO STREAMER ===")
     
@@ -975,10 +976,41 @@ async def main(participant_name: str, enable_aec: bool = True):
     @room.on("connected")
     def on_connected():
         logger.info("Successfully connected to LiveKit room")
+        # Send initial transcripts if provided
+        if initial_transcripts:
+            async def send_transcripts():
+                try:
+                    transcript_message = {
+                        "type": "initial_transcripts",
+                        "transcripts": initial_transcripts
+                    }
+                    await room.local_participant.publish_data(
+                        json.dumps(transcript_message).encode(),
+                        topic="initialization"
+                    )
+                    logger.info(f"📝 Sent {len(initial_transcripts)} initial transcripts to server")
+                except Exception as e:
+                    logger.error(f"Failed to send initial transcripts: {e}")
+            asyncio.create_task(send_transcripts())
 
     @room.on("disconnected")
     def on_disconnected(reason):
         logger.info(f"Disconnected from LiveKit room: {reason}")
+    
+    @room.on("data_received")
+    def on_data_received(data_packet):
+        """Handle data received from server via data channel"""
+        try:
+            if data_packet.topic == "transcripts":
+                # Transcript update from server
+                transcript = json.loads(data_packet.data.decode())
+                logger.info(f"📝 Received transcript: {transcript.get('role')}: {transcript.get('content')[:50]}...")
+                # Store transcript for UI or logging (could emit event here)
+                if not hasattr(streamer, 'transcript_buffer'):
+                    streamer.transcript_buffer = []
+                streamer.transcript_buffer.append(transcript)
+        except Exception as e:
+            logger.error(f"Error handling data packet: {e}")
 
     try:
         # Start keyboard handler
