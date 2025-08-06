@@ -214,6 +214,112 @@ Each transcript entry supports:
 }
 ```
 
+## Assistant Override (Testing)
+
+Override the configured assistant with a different one for testing purposes. This allows testing different assistant personalities and configurations without changing your device settings.
+
+### ⚠️ Important Notes
+
+- **Testing Only**: Assistant override should only be used for testing and development
+- **Warning Messages**: The SDK will display warnings when using assistant override
+- **Name Lookup**: If multiple assistants have the same name, the first one found will be used
+- **Temporary Override**: This only affects the current session, not your device configuration
+
+### Basic Usage
+
+```python
+import asyncio
+from lightberry_ai import LBBasicClient
+
+async def main():
+    # Override the configured assistant with a specific one
+    client = LBBasicClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        assistant_name="Test Assistant"  # Override with different assistant
+    )
+    
+    await client.connect()  # Will show warning about override
+    await client.enable_audio()
+
+asyncio.run(main())
+```
+
+### Tool Client Override
+
+```python
+import asyncio
+from lightberry_ai import LBToolClient
+
+async def main():
+    # Test tools with a different assistant
+    client = LBToolClient(
+        api_key="your_api_key",
+        device_id="your_device_id", 
+        assistant_name="Smart Home Assistant"  # Override for specific use case
+    )
+    
+    await client.connect()
+    await client.enable_audio()  # Tools + different assistant personality
+
+asyncio.run(main())
+```
+
+### Testing Multiple Assistants
+
+```python
+async def test_different_assistants():
+    """Test the same functionality with different assistants"""
+    
+    assistants_to_test = [
+        "Customer Service Bot",
+        "Technical Support Agent", 
+        "Friendly Companion"
+    ]
+    
+    for assistant_name in assistants_to_test:
+        print(f"\\n🧪 Testing with: {assistant_name}")
+        
+        client = LBBasicClient(
+            api_key="your_api_key",
+            device_id="your_device_id",
+            assistant_name=assistant_name
+        )
+        
+        await client.connect()
+        print(f"✅ Connected with {assistant_name}")
+        
+        # Quick interaction test
+        # await client.enable_audio()  # Uncomment for full test
+        
+        await client.disconnect()
+        print(f"🔌 Disconnected from {assistant_name}")
+
+asyncio.run(test_different_assistants())
+```
+
+### Expected Behavior
+
+**When using assistant override:**
+- ⚠️  **Warning message displayed**: `WARNING: Manually overwriting the assistant`
+- ✅ **Authentication includes override**: API call includes the override assistant name
+- ✅ **Server loads specified assistant**: The requested assistant is loaded instead of default
+- ✅ **All functionality works**: Audio streaming, tools, and features work normally
+
+**Console Output Example:**
+```
+WARNING:lightberry_ai.auth.authenticator:⚠️  WARNING: Manually overwriting the assistant to a different one than is configured. Use this only for testing.
+INFO:lightberry_ai.auth.authenticator:Attempting to fetch credentials for assistant: Test Assistant
+INFO:lightberry_ai.core.basic_client:Successfully authenticated - Room: lightberry
+```
+
+### Use Cases
+
+1. **A/B Testing**: Compare different assistant personalities for the same task
+2. **Feature Testing**: Test specific assistant configurations with new features
+3. **Development**: Develop with a test assistant instead of production assistant
+4. **Quality Assurance**: Validate functionality across multiple assistant types
+
 ## Custom Tools
 
 ### Tool Architecture
@@ -273,7 +379,7 @@ Complete working examples are available in the [`examples/`](examples/) director
 - **[`basic_audio_example.py`](examples/basic_audio_example.py)** - Audio-only streaming
 - **[`tool_client_example.py`](examples/tool_client_example.py)** - Tool-enabled streaming
 - **[`passing_transcript_example.py`](examples/passing_transcript_example.py)** - Conversation initialization with transcript history
-- **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Testing with different assistants
+- **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Assistant override for testing (⚠️ testing only)
 - **[`local_tool_responses.py`](examples/local_tool_responses.py)** - Example tool definitions
 
 ### Running Examples
@@ -295,6 +401,9 @@ python examples/passing_transcript_example.py
 python examples/passing_transcript_example.py --mode basic    # Basic client only
 python examples/passing_transcript_example.py --mode tool     # Tool client only
 python examples/passing_transcript_example.py --mode control  # No transcripts (control)
+
+# Run assistant override examples (⚠️ testing only)
+python examples/assistant_override_example.py                 # Simple assistant override demo
 ```
 
 See the [examples README](examples/README.md) for detailed usage instructions.
@@ -358,6 +467,17 @@ Use `list_devices.py` from the original project to find the correct `device_inde
 
 ### Connection Issues
 Verify your `.env` file contains valid `LIGHTBERRY_API_KEY` and `DEVICE_ID`.
+
+### Assistant Override Issues
+```
+Assistant 'AssistantName' not found
+```
+**Solution**: Check that the assistant name exists in your Airtable configuration and is spelled correctly.
+
+```
+WARNING: Manually overwriting the assistant...
+```
+**Expected**: This warning appears when using `assistant_name` parameter - this is normal for testing.
 
 ## License
 

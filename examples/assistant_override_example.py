@@ -32,7 +32,7 @@ async def main():
         device_id=device_id,
         enable_aec=True,
         log_level="INFO",
-        assistant_name="test-assistant-v2"  # Override the configured assistant
+        assistant_name="Your Test Assistant"  # Override the configured assistant
     )
     
     try:
@@ -42,7 +42,7 @@ async def main():
         
         print(f"Connected to room: {client.room_name}")
         print(f"Participant name: {client.participant_name}")
-        print("⚠️  Using overridden assistant: test-assistant-v2")
+        print("⚠️  Using overridden assistant: Your Test Assistant")
         
         # Start audio streaming
         print("\nStarting audio streaming...")

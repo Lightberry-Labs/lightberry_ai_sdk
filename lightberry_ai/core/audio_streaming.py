@@ -1032,7 +1032,9 @@ async def main(participant_name: str, enable_aec: bool = True, initial_transcrip
         logger.info("Connecting to LiveKit room...")
         
         # Authenticate and get token
-        token, room_name, livekit_url = await authenticate(participant_name, ROOM_NAME)
+        # Use fallback room name if ROOM_NAME is not set (it shouldn't be needed anyway)
+        fallback_room = ROOM_NAME or "default-room"
+        token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
         logger.info(f"Generated token for participant: {participant_name}")
         
         await room.connect(livekit_url, token)
