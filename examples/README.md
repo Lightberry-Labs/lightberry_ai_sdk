@@ -50,6 +50,53 @@ python examples/tool_client_example.py
 - Handling remote AI tool calls via data channels
 - Integration between AI agent decisions and local hardware/software
 
+### Conversation Initialization (`passing_transcript_example.py`)
+
+**Purpose**: Demonstrates how to initialize conversations with existing transcript history, bypassing welcome messages and continuing from a specific conversation state.
+
+**Usage**:
+```bash
+# Run all demos (basic client + tool client + control)
+python examples/passing_transcript_example.py
+
+# Run specific demo modes
+python examples/passing_transcript_example.py --mode basic    # Basic client with transcripts
+python examples/passing_transcript_example.py --mode tool     # Tool client with transcripts  
+python examples/passing_transcript_example.py --mode control  # No transcripts (control)
+
+# Use custom transcript file
+python examples/passing_transcript_example.py --transcripts-file my_conversation.json
+```
+
+**What it shows**:
+- Loading transcript history from JSON data, files, or environment variables
+- Using `LBBasicClient` with conversation history for seamless reconnections
+- Using `LBToolClient` with smart home conversation context
+- Comparison between transcript-initialized and normal conversation flows
+- Expected behaviors: welcome message skipping, conversation continuity
+
+**Transcript JSON Format**:
+```json
+[
+  {
+    "role": "user",
+    "content": "Hello, I need help with my order.",
+    "timestamp": 1704067200000
+  },
+  {
+    "role": "assistant", 
+    "content": "Hi! I'd be happy to help with your order. What do you need?",
+    "timestamp": 1704067205000
+  }
+]
+```
+
+**Use Cases**:
+- 🔄 **Reconnection Scenarios**: Continue conversations after network disconnections
+- 🧪 **Testing Specific States**: Start tests from particular conversation points
+- 📱 **User Experience**: Eliminate repetitive greetings during session restoration
+- 🎯 **Context Preservation**: Maintain conversation context across client restarts
+
 ## Custom Tools
 
 **Important**: The `local_tool_responses.py` file must be in the same directory where you run your script.

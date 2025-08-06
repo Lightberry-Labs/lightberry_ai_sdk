@@ -79,6 +79,140 @@ Both client classes support these parameters:
 - `enable_aec` (bool): Enable acoustic echo cancellation (default: True)
 - `log_level` (str): Logging level - DEBUG, INFO, WARNING, ERROR (default: INFO)
 - `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!) - If multiple assistants with the same name exist, the first one found will be used
+- `initial_transcripts` (list, optional): Initialize conversation with transcript history (see Conversation Initialization)
+
+## Conversation Initialization
+
+Initialize conversations with existing transcript history to bypass welcome messages and continue from a specific conversation state.
+
+### Basic Usage
+
+```python
+import asyncio
+from lightberry_ai import LBBasicClient
+
+# Define conversation history
+conversation_history = [
+    {
+        "role": "user",
+        "content": "Hello, I need help with my order status.",
+        "timestamp": 1704067200000  # Optional timestamp
+    },
+    {
+        "role": "assistant", 
+        "content": "Hi! I'd be happy to help you check your order status. What's your order number?",
+        "timestamp": 1704067205000
+    },
+    {
+        "role": "user",
+        "content": "My order number is #12345.",
+        "timestamp": 1704067210000
+    }
+]
+
+async def main():
+    client = LBBasicClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        initial_transcripts=conversation_history  # Initialize with history
+    )
+    
+    await client.connect()
+    await client.enable_audio()  # Conversation continues from transcript history
+
+asyncio.run(main())
+```
+
+### Tool Client with Transcripts
+
+```python
+from lightberry_ai import LBToolClient
+
+# Smart home conversation history
+smart_home_history = [
+    {
+        "role": "user",
+        "content": "Can you help me control the lights in my living room?"
+    },
+    {
+        "role": "assistant",
+        "content": "Of course! I can help you control the smart lights. Which lights would you like me to adjust?"
+    },
+    {
+        "role": "user",
+        "content": "Turn on the main ceiling light and set it to 75% brightness."
+    }
+]
+
+async def main():
+    client = LBToolClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        initial_transcripts=smart_home_history  # Tools + conversation history
+    )
+    
+    await client.connect()
+    await client.enable_audio()  # Tools available + conversation context
+
+asyncio.run(main())
+```
+
+### Loading from JSON File
+
+```python
+import json
+
+def load_conversation_from_file(file_path: str) -> list:
+    """Load conversation history from JSON file"""
+    with open(file_path, 'r') as f:
+        return json.load(f)
+
+# conversation_history.json format:
+# [
+#   {"role": "user", "content": "Hello", "timestamp": 1704067200000},
+#   {"role": "assistant", "content": "Hi there!", "timestamp": 1704067205000}
+# ]
+
+conversation = load_conversation_from_file("conversation_history.json")
+client = LBBasicClient(..., initial_transcripts=conversation)
+```
+
+### Environment Variable Loading
+
+```python
+import os
+import json
+
+# Load from INITIAL_TRANSCRIPTS environment variable
+transcripts_json = os.getenv("INITIAL_TRANSCRIPTS")
+if transcripts_json:
+    transcripts = json.loads(transcripts_json)
+    client = LBBasicClient(..., initial_transcripts=transcripts)
+```
+
+### Expected Behavior
+
+**With Initial Transcripts:**
+- ✅ Welcome message is skipped
+- ✅ Conversation continues from provided history
+- ✅ AI agent has full context of previous exchanges
+- ✅ Real-time transcript sync via data channels
+
+**Without Initial Transcripts:**
+- ✅ Normal welcome greeting occurs
+- ✅ Conversation starts fresh
+
+### Transcript Format
+
+Each transcript entry supports:
+
+```python
+{
+    "role": "user" | "assistant",     # Required: Speaker role
+    "content": "Message content",     # Required: Transcript text
+    "timestamp": 1704067200000        # Optional: Unix timestamp in milliseconds
+}
+```
 
 ## Custom Tools
 
@@ -138,6 +272,7 @@ Complete working examples are available in the [`examples/`](examples/) director
 
 - **[`basic_audio_example.py`](examples/basic_audio_example.py)** - Audio-only streaming
 - **[`tool_client_example.py`](examples/tool_client_example.py)** - Tool-enabled streaming
+- **[`passing_transcript_example.py`](examples/passing_transcript_example.py)** - Conversation initialization with transcript history
 - **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Testing with different assistants
 - **[`local_tool_responses.py`](examples/local_tool_responses.py)** - Example tool definitions
 
@@ -152,6 +287,14 @@ python examples/basic_audio_example.py
 
 # Run tool-enabled streaming  
 python examples/tool_client_example.py
+
+# Run transcript initialization demo (shows both basic and tool clients)
+python examples/passing_transcript_example.py
+
+# Run specific transcript demo modes
+python examples/passing_transcript_example.py --mode basic    # Basic client only
+python examples/passing_transcript_example.py --mode tool     # Tool client only
+python examples/passing_transcript_example.py --mode control  # No transcripts (control)
 ```
 
 See the [examples README](examples/README.md) for detailed usage instructions.
