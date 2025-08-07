@@ -34,6 +34,7 @@ class LBBasicClient:
         log_level: Logging verbosity level (DEBUG, INFO, WARNING, ERROR)
         assistant_name: Optional assistant name to override configured assistant (testing only)
         initial_transcripts: Optional list of transcript dictionaries to initialize conversation history
+        session_instructions: Optional instructions to append to the system prompt for this session only
     """
     
     def __init__(
@@ -44,7 +45,8 @@ class LBBasicClient:
         enable_aec: bool = True,
         log_level: str = "WARNING",
         assistant_name: Optional[str] = None,
-        initial_transcripts: Optional[list] = None
+        initial_transcripts: Optional[list] = None,
+        session_instructions: Optional[str] = None
     ):
         self.api_key = api_key
         self.device_id = device_id
@@ -53,6 +55,7 @@ class LBBasicClient:
         self.log_level = log_level
         self.assistant_name = assistant_name
         self.initial_transcripts = initial_transcripts
+        self.session_instructions = session_instructions
         
         # Set by authentication
         self._participant_name: Optional[str] = None
@@ -89,7 +92,8 @@ class LBBasicClient:
                 participant_name, 
                 fallback_room, 
                 self.assistant_name,
-                has_initial_transcripts=has_initial_transcripts
+                has_initial_transcripts=has_initial_transcripts,
+                session_instructions=self.session_instructions
             )
             
             self._participant_name = participant_name
