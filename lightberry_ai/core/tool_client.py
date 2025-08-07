@@ -94,6 +94,7 @@ class LBToolClient:
             Exception: If quota is exceeded, displays "Quota reached." message
             Exception: If authentication fails for other reasons
         """
+        print("[CORE TEST] Core library edits are working!")
         logger.info("Connecting to Lightberry service...")
         
         # Use existing auth function - it will use DEVICE_ID from environment

@@ -337,23 +337,30 @@ async def main_with_tools(
     
     @room.on("data_received")
     def on_data_received(data_packet):
+        print(f"[DEBUG] DATA RECEIVED! Topic: {data_packet.topic}, Size: {len(data_packet.data)} bytes")
         try:
             data = data_packet.data
             topic = data_packet.topic
             participant = data_packet.participant
             
+            print(f"[DEBUG] Processing data from {participant.identity} on topic '{topic}'")
+            
             # Handle transcript streaming
             if topic == "transcripts":
+                print(f"[DEBUG] TRANSCRIPT TOPIC DETECTED!")
                 transcript = json.loads(data.decode())
+                print(f"[DEBUG] Transcript parsed: {transcript}")
                 logger.info(f"📝 Received transcript: {transcript.get('role')}: {transcript.get('content')[:50]}...")
                 # Store transcript for UI or logging
                 if not hasattr(streamer, 'transcript_buffer'):
                     streamer.transcript_buffer = []
                 streamer.transcript_buffer.append(transcript)
+                print(f"[DEBUG] Transcript stored in buffer. Total transcripts: {len(streamer.transcript_buffer)}")
             else:
                 logger.info(f"Data received on topic '{topic}' from {participant.identity}")
                 handle_data_channel_message(data, topic)
         except Exception as e:
+            print(f"[DEBUG] ERROR in data_received: {e}")
             logger.error(f"Error in data_received handler: {e}")
             logger.error(f"Data packet: {data_packet}")
     

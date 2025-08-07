@@ -28,6 +28,7 @@ async def main():
         return
     
     print("=== Lightberry Tool-Enabled Audio Streaming ===")
+    print("[TEST] Print statement is working - edits are being executed!")
     print(f"Device ID: {device_id}")
     
     # Create client with audio configuration
