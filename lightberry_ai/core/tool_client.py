@@ -64,6 +64,8 @@ class LBToolClient:
         # Set by authentication
         self._participant_name: Optional[str] = None
         self._room_name: Optional[str] = None
+        self._token: Optional[str] = None
+        self._livekit_url: Optional[str] = None
         
         # Configure logging
         logging.basicConfig(level=getattr(logging, log_level.upper()))
@@ -120,6 +122,8 @@ class LBToolClient:
             
             self._participant_name = participant_name
             self._room_name = room_name
+            self._token = token
+            self._livekit_url = livekit_url
             
             logger.info(f"Successfully authenticated - Room: {room_name}, Participant: {participant_name}")
             
@@ -147,13 +151,15 @@ class LBToolClient:
             
         logger.info("Starting audio streaming with tool support...")
         
-        # Call the existing main_with_tools function with our parameters
+        # Call the existing main_with_tools function with our parameters and token
         await main_with_tools(
             participant_name=self._participant_name,
             device_index=self.device_index,
             enable_aec=self.enable_aec,
             data_channel_name=self._data_channel_name,
-            initial_transcripts=self.initial_transcripts
+            initial_transcripts=self.initial_transcripts,
+            token=self._token,
+            livekit_url=self._livekit_url
         )
     
     async def disconnect(self) -> None:
@@ -166,6 +172,8 @@ class LBToolClient:
         # The main_with_tools function handles its own cleanup
         self._participant_name = None
         self._room_name = None
+        self._token = None
+        self._livekit_url = None
     
     @property
     def is_connected(self) -> bool:

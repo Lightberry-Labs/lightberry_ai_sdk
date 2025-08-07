@@ -60,6 +60,8 @@ class LBBasicClient:
         # Set by authentication
         self._participant_name: Optional[str] = None
         self._room_name: Optional[str] = None
+        self._token: Optional[str] = None
+        self._livekit_url: Optional[str] = None
         
         # Configure logging
         logging.basicConfig(level=getattr(logging, log_level.upper()))
@@ -98,6 +100,8 @@ class LBBasicClient:
             
             self._participant_name = participant_name
             self._room_name = room_name
+            self._token = token
+            self._livekit_url = livekit_url
             
             logger.info(f"Successfully authenticated - Room: {room_name}, Participant: {participant_name}")
             
@@ -124,11 +128,13 @@ class LBBasicClient:
             
         logger.info("Starting audio streaming...")
         
-        # Call the existing main function with our parameters
+        # Call the existing main function with our parameters and the token
         await audio_main(
             participant_name=self._participant_name,
             enable_aec=self.enable_aec,
-            initial_transcripts=self.initial_transcripts
+            initial_transcripts=self.initial_transcripts,
+            token=self._token,
+            livekit_url=self._livekit_url
         )
     
     async def disconnect(self) -> None:
@@ -141,6 +147,8 @@ class LBBasicClient:
         # The main function handles its own cleanup
         self._participant_name = None
         self._room_name = None
+        self._token = None
+        self._livekit_url = None
     
     @property
     def is_connected(self) -> bool:

@@ -80,6 +80,7 @@ Both client classes support these parameters:
 - `log_level` (str): Logging level - DEBUG, INFO, WARNING, ERROR (default: INFO)
 - `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!) - If multiple assistants with the same name exist, the first one found will be used
 - `initial_transcripts` (list, optional): Initialize conversation with transcript history (see Conversation Initialization)
+- `session_instructions` (str, optional): Custom instructions appended to system prompt for this session only (see Session Instructions)
 
 ## Conversation Initialization
 
@@ -320,6 +321,201 @@ INFO:lightberry_ai.core.basic_client:Successfully authenticated - Room: lightber
 3. **Development**: Develop with a test assistant instead of production assistant
 4. **Quality Assurance**: Validate functionality across multiple assistant types
 
+## Session Instructions
+
+Provide session-specific instructions that temporarily modify the assistant's behavior without changing its core configuration. These instructions are appended to the system prompt for the duration of the session only.
+
+### Basic Usage
+
+```python
+import asyncio
+from datetime import datetime
+from lightberry_ai import LBBasicClient
+
+async def main():
+    # Create custom instructions for this session
+    session_instructions = f"""
+    For this session only:
+    - Current date and time: {datetime.now().strftime('%A, %B %d, %Y at %I:%M %p')}
+    - The user prefers brief, concise responses
+    - Focus on technical details when explaining concepts
+    """
+    
+    client = LBBasicClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        session_instructions=session_instructions  # Apply session-specific behavior
+    )
+    
+    await client.connect()
+    await client.enable_audio()
+
+asyncio.run(main())
+```
+
+### Example: Continuing a Lesson
+
+Resume a programming lesson from where the student left off:
+
+```python
+import asyncio
+import json
+from lightberry_ai import LBBasicClient
+
+# Load student's progress from storage
+def load_student_progress(student_id: str) -> dict:
+    with open(f"progress/{student_id}.json", "r") as f:
+        return json.load(f)
+
+async def main():
+    student_id = "student_123"
+    progress = load_student_progress(student_id)
+    
+    # Create session instructions based on student progress
+    session_instructions = f"""
+    STUDENT PROGRESS CONTEXT:
+    
+    Student: {progress['name']}
+    Current Course: {progress['course']}
+    Last Lesson: {progress['last_lesson']}
+    Topics Completed: {', '.join(progress['completed_topics'])}
+    Current Topic: {progress['current_topic']}
+    Struggles With: {', '.join(progress['difficulty_areas'])}
+    
+    INSTRUCTIONS FOR THIS SESSION:
+    1. We are continuing from lesson {progress['last_lesson']} on {progress['current_topic']}
+    2. The student has already covered: {', '.join(progress['completed_topics'])}
+    3. No need to review completed topics unless the student asks
+    4. Pay special attention to: {', '.join(progress['difficulty_areas'])}
+    5. Use examples related to: {progress['preferred_examples']}
+    6. Teaching style preference: {progress['learning_style']}
+    
+    Start by briefly confirming we're continuing from {progress['current_topic']} 
+    and ask if they're ready to proceed.
+    """
+    
+    client = LBBasicClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        session_instructions=session_instructions
+    )
+    
+    await client.connect()
+    print(f"📚 Resuming lesson for {progress['name']} - {progress['current_topic']}")
+    await client.enable_audio()
+
+asyncio.run(main())
+```
+
+### Example: Recognizing a Customer
+
+Personalize interactions based on customer history and preferences:
+
+```python
+import asyncio
+from datetime import datetime
+from lightberry_ai import LBToolClient
+
+# Fetch customer data from your CRM/database
+def get_customer_profile(customer_id: str) -> dict:
+    # In production, this would query your database
+    return {
+        "name": "Sarah Johnson",
+        "customer_since": "2021",
+        "vip_status": True,
+        "preferred_coffee": "Oat Milk Cappuccino",
+        "usual_size": "Large",
+        "allergies": ["nuts", "soy"],
+        "last_orders": [
+            "Large Oat Milk Cappuccino with extra shot",
+            "Medium Almond Croissant (cancelled - allergy)",
+            "Large Oat Milk Latte"
+        ],
+        "preferences": {
+            "temperature": "extra hot",
+            "sweetness": "no sugar",
+            "loyalty_points": 2847
+        }
+    }
+
+async def main():
+    customer_id = "cust_98765"
+    customer = get_customer_profile(customer_id)
+    
+    # Build personalized session instructions
+    session_instructions = f"""
+    RECOGNIZED CUSTOMER - VIP PROFILE:
+    
+    Customer: {customer['name']}
+    Status: {'VIP ⭐' if customer['vip_status'] else 'Regular'} customer since {customer['customer_since']}
+    Loyalty Points: {customer['preferences']['loyalty_points']} points
+    
+    PREFERENCES:
+    - Usual Order: {customer['preferred_coffee']} ({customer['usual_size']})
+    - Temperature: {customer['preferences']['temperature']}
+    - Sweetness: {customer['preferences']['sweetness']}
+    
+    IMPORTANT ALLERGIES: {', '.join(customer['allergies'])}
+    - Never recommend items containing these ingredients
+    - Double-check any food orders for allergens
+    
+    RECENT ORDER HISTORY:
+    {chr(10).join(f"  - {order}" for order in customer['last_orders'])}
+    
+    INTERACTION GUIDELINES:
+    1. Greet by name: "Welcome back, {customer['name'].split()[0]}!"
+    2. You may suggest their usual order: "{customer['usual_size']} {customer['preferred_coffee']}"
+    3. Remember their preferences without them having to repeat
+    4. If they order food, proactively check for {', '.join(customer['allergies'])}
+    5. Mention loyalty points if relevant to their order
+    6. Provide personalized recommendations based on their history
+    
+    Today's date: {datetime.now().strftime('%A, %B %d, %Y')}
+    Special: Buy 2 get 3rd free on all pastries (except items with nuts)
+    """
+    
+    client = LBToolClient(
+        api_key="your_api_key",
+        device_id="your_device_id",
+        session_instructions=session_instructions
+    )
+    
+    await client.connect()
+    print(f"👤 Customer recognized: {customer['name']} (VIP: {customer['vip_status']})")
+    await client.enable_audio()
+
+asyncio.run(main())
+```
+
+### Use Cases for Session Instructions
+
+1. **Educational Continuity**: Resume lessons with full context of student progress
+2. **Customer Recognition**: Provide personalized service based on customer history
+3. **Temporal Context**: Include current date, time, location, or events
+4. **User Preferences**: Apply user-specific interaction styles or preferences
+5. **Business Context**: Include inventory status, daily specials, or operational updates
+6. **Accessibility Needs**: Adjust communication style for specific user requirements
+7. **Session Goals**: Define specific objectives or constraints for the interaction
+
+### Session Instructions vs Initial Transcripts
+
+| Feature | Session Instructions | Initial Transcripts |
+|---------|---------------------|-------------------|
+| **Purpose** | Modify assistant behavior | Continue conversation history |
+| **Affects** | System prompt (how AI behaves) | Conversation context (what was said) |
+| **Use When** | You need different behavior | You need conversation continuity |
+| **Example** | "Be more concise", "User is VIP" | Previous chat messages |
+| **Persistence** | Session only | Session only |
+
+### Best Practices
+
+1. **Keep Instructions Focused**: Include only relevant context for the current session
+2. **Use Structured Format**: Organize instructions with clear sections and bullet points
+3. **Include Temporal Context**: Add current date/time when relevant
+4. **Security**: Never include sensitive data like passwords or payment information
+5. **Update Dynamically**: Generate instructions based on real-time data from your systems
+6. **Test Thoroughly**: Verify the assistant behaves as expected with your instructions
+
 ## Custom Tools
 
 ### Tool Architecture
@@ -380,6 +576,7 @@ Complete working examples are available in the [`examples/`](examples/) director
 - **[`tool_client_example.py`](examples/tool_client_example.py)** - Tool-enabled streaming
 - **[`passing_transcript_example.py`](examples/passing_transcript_example.py)** - Conversation initialization with transcript history
 - **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Assistant override for testing (⚠️ testing only)
+- **[`stream_session_instructions.py`](examples/stream_session_instructions.py)** - Session-specific instructions for personalization
 - **[`local_tool_responses.py`](examples/local_tool_responses.py)** - Example tool definitions
 
 ### Running Examples
@@ -404,6 +601,9 @@ python examples/passing_transcript_example.py --mode control  # No transcripts (
 
 # Run assistant override examples (⚠️ testing only)
 python examples/assistant_override_example.py                 # Simple assistant override demo
+
+# Run session instructions example
+python examples/stream_session_instructions.py                # Personalized session with custom instructions
 ```
 
 See the [examples README](examples/README.md) for detailed usage instructions.

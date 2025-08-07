@@ -815,7 +815,7 @@ class AudioStreamer:
                 sys.stdout.write("\033[2K\r\033[?25h")
                 sys.stdout.flush()
 
-async def main(participant_name: str, enable_aec: bool = True, initial_transcripts: list = None):
+async def main(participant_name: str, enable_aec: bool = True, initial_transcripts: list = None, token: str = None, livekit_url: str = None):
     logger = logging.getLogger(__name__)
     logger.info("=== STARTING AUDIO STREAMER ===")
     
@@ -1031,11 +1031,16 @@ async def main(participant_name: str, enable_aec: bool = True, initial_transcrip
         # Connect to LiveKit room
         logger.info("Connecting to LiveKit room...")
         
-        # Authenticate and get token
-        # Use fallback room name if ROOM_NAME is not set (it shouldn't be needed anyway)
-        fallback_room = ROOM_NAME or "default-room"
-        token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
-        logger.info(f"Generated token for participant: {participant_name}")
+        # Use provided token or authenticate to get one
+        if token and livekit_url:
+            logger.info(f"Using provided token for participant: {participant_name}")
+            room_name = None  # Will be set from room.name after connection
+        else:
+            # Authenticate and get token
+            # Use fallback room name if ROOM_NAME is not set (it shouldn't be needed anyway)
+            fallback_room = ROOM_NAME or "default-room"
+            token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
+            logger.info(f"Generated token for participant: {participant_name}")
         
         await room.connect(livekit_url, token)
         logger.info("connected to room %s", room.name)

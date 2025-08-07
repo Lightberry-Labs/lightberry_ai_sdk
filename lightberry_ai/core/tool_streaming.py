@@ -148,7 +148,9 @@ async def main_with_tools(
     device_index: Optional[int] = None,
     enable_aec: bool = True,
     data_channel_name: Optional[str] = None,
-    initial_transcripts: Optional[list] = None
+    initial_transcripts: Optional[list] = None,
+    token: Optional[str] = None,
+    livekit_url: Optional[str] = None
 ):
     """
     Main function with tool support via data channel.
@@ -450,7 +452,14 @@ async def main_with_tools(
         
         # Connect to LiveKit room
         logger.info("Connecting to LiveKit room...")
-        token, room_name, livekit_url = await authenticate(participant_name, stream_audio.ROOM_NAME)
+        
+        # Use provided token or authenticate to get one
+        if token and livekit_url:
+            logger.info(f"Using provided token for participant: {participant_name}")
+            room_name = None  # Will be set from room.name after connection
+        else:
+            token, room_name, livekit_url = await authenticate(participant_name, stream_audio.ROOM_NAME)
+            logger.info(f"Generated new token for participant: {participant_name}")
         
         await room.connect(livekit_url, token)
         logger.info("connected to room %s", room.name)
