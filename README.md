@@ -9,6 +9,7 @@ A Python SDK for real-time audio streaming with AI tool execution capabilities u
 - **Two client types**: Basic audio-only streaming and tool-enabled streaming
 - **Terminal audio meters** with logging-friendly alternatives
 - **Standalone SDK** with no dependencies on external script files
+- **Local mode support** for development and testing with self-hosted LiveKit server
 
 ## Installation
 
@@ -73,14 +74,125 @@ DEVICE_ID=your_device_id
 
 Both client classes support these parameters:
 
-- `api_key` (str): Lightberry API key for authentication
-- `device_id` (str): Device identifier for multi-device management
+- `api_key` (str, optional): Lightberry API key for authentication (required for remote mode)
+- `device_id` (str, optional): Device identifier for multi-device management (required for remote mode)
+- `use_local` (bool): Use local LiveKit server instead of cloud (default: False)
 - `device_index` (int, optional): Audio device index (None for default)
 - `enable_aec` (bool): Enable acoustic echo cancellation (default: True)
 - `log_level` (str): Logging level - DEBUG, INFO, WARNING, ERROR (default: INFO)
 - `assistant_name` (str, optional): Override configured assistant (⚠️  testing only!) - If multiple assistants with the same name exist, the first one found will be used
 - `initial_transcripts` (list, optional): Initialize conversation with transcript history (see Conversation Initialization)
 - `session_instructions` (str, optional): Custom instructions appended to system prompt for this session only (see Session Instructions)
+
+## Local Mode (Development & Testing)
+
+The SDK supports connecting to a local LiveKit server for development and testing purposes. This allows you to test your applications without using cloud resources or requiring API keys.
+
+### Prerequisites
+
+1. Start the local LiveKit server and token server:
+```bash
+cd ../local-livekit
+./start-all.sh
+```
+
+This starts:
+- LiveKit server on `ws://localhost:7880`
+- Token server on `http://localhost:8090`
+- Echo bot for testing (optional)
+
+### Basic Usage
+
+```python
+import asyncio
+from lightberry_ai import LBBasicClient
+
+async def main():
+    # Create client in local mode - no API key or device ID needed!
+    client = LBBasicClient(use_local=True)
+    
+    # Connect with custom room and participant names
+    await client.connect(
+        room_name="test-room",
+        participant_name="test-user"
+    )
+    
+    await client.enable_audio()
+
+asyncio.run(main())
+```
+
+### Tool Client in Local Mode
+
+```python
+from lightberry_ai import LBToolClient
+
+async def main():
+    # Tool client also supports local mode
+    client = LBToolClient(use_local=True, log_level="INFO")
+    
+    await client.connect(
+        room_name="tool-test-room",
+        participant_name="tool-test-user"
+    )
+    
+    await client.enable_audio()  # Tools work in local mode too!
+
+asyncio.run(main())
+```
+
+### Same Code, Both Modes
+
+The beauty of local mode is that the same code can work for both local and remote:
+
+```python
+async def run_client(use_local: bool = False):
+    if use_local:
+        # Local mode - no credentials needed
+        client = LBBasicClient(use_local=True)
+        await client.connect(room_name="demo", participant_name="user")
+    else:
+        # Remote mode - uses API credentials
+        client = LBBasicClient(
+            api_key="your_api_key",
+            device_id="your_device_id"
+        )
+        await client.connect()
+    
+    # Everything else is identical!
+    await client.enable_audio()
+    await client.disconnect()
+
+# Test locally
+await run_client(use_local=True)
+
+# Deploy to production
+await run_client(use_local=False)
+```
+
+### Local Mode Benefits
+
+- **No API keys required** - Perfect for development
+- **No cloud costs** - Everything runs on your machine
+- **Fast iteration** - No network latency
+- **Full debugging** - Access to all server logs
+- **Same SDK interface** - Code works identically
+
+### Local Mode Limitations
+
+- **No assistant configuration** - Server-side agent configuration not included
+- **Manual server setup** - Must start LiveKit server separately
+- **Local only** - Can't connect from other devices
+- **No persistence** - Rooms are temporary
+
+### Example: Local Mode Testing
+
+See [`examples/local_mode_example.py`](examples/local_mode_example.py) for a complete example with interactive menu.
+
+```bash
+# Run the local mode example
+python examples/local_mode_example.py
+```
 
 ## Conversation Initialization
 
@@ -574,6 +686,7 @@ Complete working examples are available in the [`examples/`](examples/) director
 
 - **[`basic_audio_example.py`](examples/basic_audio_example.py)** - Audio-only streaming
 - **[`tool_client_example.py`](examples/tool_client_example.py)** - Tool-enabled streaming
+- **[`local_mode_example.py`](examples/local_mode_example.py)** - Local LiveKit server connection for development
 - **[`passing_transcript_example.py`](examples/passing_transcript_example.py)** - Conversation initialization with transcript history
 - **[`assistant_override_example.py`](examples/assistant_override_example.py)** - Assistant override for testing (⚠️ testing only)
 - **[`stream_session_instructions.py`](examples/stream_session_instructions.py)** - Session-specific instructions for personalization
@@ -590,6 +703,9 @@ python examples/basic_audio_example.py
 
 # Run tool-enabled streaming  
 python examples/tool_client_example.py
+
+# Run local mode examples (requires local LiveKit server)
+python examples/local_mode_example.py
 
 # Run transcript initialization demo (shows both basic and tool clients)
 python examples/passing_transcript_example.py

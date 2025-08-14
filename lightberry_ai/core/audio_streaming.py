@@ -28,7 +28,7 @@ from livekit import rtc
 from livekit.rtc import apm
 import sounddevice as sd
 import numpy as np
-from ..auth.authenticator import authenticate
+from ..auth import authenticate, authenticate_local
 # list_audio_devices not needed in SDK
 
 load_dotenv()
@@ -815,7 +815,7 @@ class AudioStreamer:
                 sys.stdout.write("\033[2K\r\033[?25h")
                 sys.stdout.flush()
 
-async def main(participant_name: str, enable_aec: bool = True, initial_transcripts: list = None, token: str = None, livekit_url: str = None):
+async def main(participant_name: str, enable_aec: bool = True, initial_transcripts: list = None, token: str = None, livekit_url: str = None, use_local: bool = False):
     logger = logging.getLogger(__name__)
     logger.info("=== STARTING AUDIO STREAMER ===")
     
@@ -1039,7 +1039,16 @@ async def main(participant_name: str, enable_aec: bool = True, initial_transcrip
             # Authenticate and get token
             # Use fallback room name if ROOM_NAME is not set (it shouldn't be needed anyway)
             fallback_room = ROOM_NAME or "default-room"
-            token, room_name, livekit_url = await authenticate(participant_name, fallback_room)
+            
+            # Choose authentication based on use_local flag
+            if use_local:
+                auth_func = authenticate_local
+                logger.info("Using local authentication")
+            else:
+                auth_func = authenticate
+                logger.info("Using remote authentication")
+            
+            token, room_name, livekit_url = await auth_func(participant_name, fallback_room)
             logger.info(f"Generated token for participant: {participant_name}")
         
         await room.connect(livekit_url, token)

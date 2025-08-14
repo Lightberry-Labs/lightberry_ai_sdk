@@ -28,7 +28,7 @@ from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 from livekit import rtc
 from ..tools.server import LightberryToolServer  
-from ..auth.authenticator import authenticate
+from ..auth import authenticate, authenticate_local
 from . import audio_streaming as stream_audio
 
 # Try to import local_tool_responses to set up app controller if available
@@ -150,7 +150,8 @@ async def main_with_tools(
     data_channel_name: Optional[str] = None,
     initial_transcripts: Optional[list] = None,
     token: Optional[str] = None,
-    livekit_url: Optional[str] = None
+    livekit_url: Optional[str] = None,
+    use_local: bool = False
 ):
     """
     Main function with tool support via data channel.
@@ -458,7 +459,15 @@ async def main_with_tools(
             logger.info(f"Using provided token for participant: {participant_name}")
             room_name = None  # Will be set from room.name after connection
         else:
-            token, room_name, livekit_url = await authenticate(participant_name, stream_audio.ROOM_NAME)
+            # Choose authentication based on use_local flag
+            if use_local:
+                auth_func = authenticate_local
+                logger.info("Using local authentication")
+            else:
+                auth_func = authenticate
+                logger.info("Using remote authentication")
+            
+            token, room_name, livekit_url = await auth_func(participant_name, stream_audio.ROOM_NAME or "default-room")
             logger.info(f"Generated new token for participant: {participant_name}")
         
         await room.connect(livekit_url, token)

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 # Import the SDK's audio streaming functionality
 from .audio_streaming import main as audio_main
-from ..auth.authenticator import authenticate
+from ..auth import authenticate, authenticate_local
 
 load_dotenv()
 
@@ -27,8 +27,9 @@ class LBBasicClient:
     Audio processing uses 48kHz sample rate with mono channel configuration.
     
     Args:
-        api_key: Lightberry API key for authentication
-        device_id: Device identifier for multi-device client management
+        api_key: Lightberry API key for authentication (optional for local mode)
+        device_id: Device identifier for multi-device client management (optional for local mode)
+        use_local: Use local LiveKit server instead of cloud (default: False)
         device_index: Audio device index (None for system default)
         enable_aec: Enable acoustic echo cancellation (default: True)
         log_level: Logging verbosity level (DEBUG, INFO, WARNING, ERROR)
@@ -39,8 +40,9 @@ class LBBasicClient:
     
     def __init__(
         self,
-        api_key: str,
-        device_id: str,
+        api_key: Optional[str] = None,
+        device_id: Optional[str] = None,
+        use_local: bool = False,
         device_index: Optional[int] = None,
         enable_aec: bool = True,
         log_level: str = "WARNING",
@@ -48,8 +50,13 @@ class LBBasicClient:
         initial_transcripts: Optional[list] = None,
         session_instructions: Optional[str] = None
     ):
+        # Validate required parameters based on mode
+        if not use_local and (not api_key or not device_id):
+            raise ValueError("api_key and device_id are required for remote mode")
+        
         self.api_key = api_key
-        self.device_id = device_id
+        self.device_id = device_id if device_id else "local-device"
+        self.use_local = use_local
         self.device_index = device_index
         self.enable_aec = enable_aec
         self.log_level = log_level
@@ -67,32 +74,49 @@ class LBBasicClient:
         logging.basicConfig(level=getattr(logging, log_level.upper()))
         logger.info(f"LBBasicClient initialized with AEC: {enable_aec}")
         
-    async def connect(self) -> None:
+    async def connect(self, room_name: Optional[str] = None, participant_name: Optional[str] = None) -> None:
         """
-        Connect to LiveKit room using API authentication.
+        Connect to LiveKit room.
         
-        Authenticates using API key and device ID, retrieves room name and
-        participant name from the authentication service.
+        For remote mode: Authenticates using API key and device ID.
+        For local mode: Connects to local LiveKit server.
+        
+        Args:
+            room_name: Room name for local mode (ignored in remote mode)
+            participant_name: Participant name for local mode (ignored in remote mode)
         
         Raises:
             Exception: If quota is exceeded, displays "Quota reached." message
             Exception: If authentication fails for other reasons
         """
-        logger.info("Connecting to Lightberry service...")
-        
-        # Use existing auth function - it will use DEVICE_ID from environment
-        # TODO: Pass api_key when server side is ready to accept it
-        try:
-            # For now, generate a participant name and use fallback room
-            fallback_room = os.environ.get("ROOM_NAME", "default-room")
-            participant_name = f"sdk-user-{self.device_id}"
+        if self.use_local:
+            logger.info("Connecting to local LiveKit server...")
             
+            # Use provided names or generate defaults for local mode
+            if not room_name:
+                room_name = "local-room"
+            if not participant_name:
+                participant_name = f"local-user-{self.device_id}"
+                
+            # Use local authentication
+            auth_func = authenticate_local
+        else:
+            logger.info("Connecting to Lightberry service...")
+            
+            # For remote mode, generate participant name from device_id
+            participant_name = f"sdk-user-{self.device_id}"
+            room_name = os.environ.get("ROOM_NAME", "default-room")
+            
+            # Use remote authentication
+            auth_func = authenticate
+        
+        try:
             # Pass flag indicating if we have initial transcripts
             has_initial_transcripts = self.initial_transcripts is not None
             
-            token, room_name, livekit_url = await authenticate(
+            token, room_name, livekit_url = await auth_func(
                 participant_name, 
-                fallback_room, 
+                room_name, 
                 self.assistant_name,
                 has_initial_transcripts=has_initial_transcripts,
                 session_instructions=self.session_instructions
