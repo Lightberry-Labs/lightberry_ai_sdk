@@ -20,7 +20,7 @@ from lightberry_ai import LBBasicClient, LBToolClient
 
 # Configure logging to see what's happening
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
@@ -37,8 +37,8 @@ async def test_local_basic_client():
     client = LBBasicClient(use_local=True, log_level="WARNING")
     
     try:
-        # Connect to local server with custom room name
-        await client.connect(room_name="test-room")
+        # Connect to local server - use "echo-test" to connect with echo bot
+        await client.connect(room_name="echo-test")
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -66,8 +66,8 @@ async def test_local_tool_client():
     client = LBToolClient(use_local=True, log_level="WARNING")
     
     try:
-        # Connect to local server
-        await client.connect(room_name="tool-test-room")
+        # Connect to local server - use "echo-test" to connect with echo bot
+        await client.connect(room_name="echo-test")
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -110,7 +110,7 @@ async def compare_local_vs_remote():
         try:
             # The connect call is almost identical!
             if use_local:
-                await client.connect(room_name="demo-room")
+                await client.connect(room_name="echo-test")  # Connect to echo bot room
             else:
                 await client.connect()  # Remote mode gets room from API
                 
