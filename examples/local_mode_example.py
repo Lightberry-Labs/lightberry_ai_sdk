@@ -34,7 +34,7 @@ async def test_local_basic_client():
     logger.info("=" * 50)
     
     # Create client for local mode - no API key or device ID needed!
-    client = LBBasicClient(use_local=True, log_level="INFO")
+    client = LBBasicClient(use_local=True, log_level="WARNING")
     
     try:
         # Connect to local server with custom room name
@@ -63,7 +63,7 @@ async def test_local_tool_client():
     logger.info("=" * 50)
     
     # Create tool client for local mode
-    client = LBToolClient(use_local=True, log_level="INFO")
+    client = LBToolClient(use_local=True, log_level="WARNING")
     
     try:
         # Connect to local server
