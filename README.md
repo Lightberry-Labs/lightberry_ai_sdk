@@ -111,11 +111,8 @@ async def main():
     # Create client in local mode - no API key or device ID needed!
     client = LBBasicClient(use_local=True)
     
-    # Connect with custom room and participant names
-    await client.connect(
-        room_name="test-room",
-        participant_name="test-user"
-    )
+    # Connect with custom room name (participant name based on device_id)
+    await client.connect(room_name="test-room")
     
     await client.enable_audio()
 
@@ -131,10 +128,7 @@ async def main():
     # Tool client also supports local mode
     client = LBToolClient(use_local=True, log_level="INFO")
     
-    await client.connect(
-        room_name="tool-test-room",
-        participant_name="tool-test-user"
-    )
+    await client.connect(room_name="tool-test-room")
     
     await client.enable_audio()  # Tools work in local mode too!
 
@@ -150,7 +144,7 @@ async def run_client(use_local: bool = False):
     if use_local:
         # Local mode - no credentials needed
         client = LBBasicClient(use_local=True)
-        await client.connect(room_name="demo", participant_name="user")
+        await client.connect(room_name="demo")
     else:
         # Remote mode - uses API credentials
         client = LBBasicClient(

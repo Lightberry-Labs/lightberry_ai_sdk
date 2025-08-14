@@ -37,11 +37,8 @@ async def test_local_basic_client():
     client = LBBasicClient(use_local=True, log_level="INFO")
     
     try:
-        # Connect to local server with custom room and participant names
-        await client.connect(
-            room_name="test-room",
-            participant_name="local-test-user"
-        )
+        # Connect to local server with custom room name
+        await client.connect(room_name="test-room")
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -70,10 +67,7 @@ async def test_local_tool_client():
     
     try:
         # Connect to local server
-        await client.connect(
-            room_name="tool-test-room",
-            participant_name="local-tool-user"
-        )
+        await client.connect(room_name="tool-test-room")
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -114,9 +108,9 @@ async def compare_local_vs_remote():
             )
         
         try:
-            # The connect and enable_audio calls are identical!
+            # The connect call is almost identical!
             if use_local:
-                await client.connect(room_name="demo-room", participant_name="demo-user")
+                await client.connect(room_name="demo-room")
             else:
                 await client.connect()  # Remote mode gets room from API
                 

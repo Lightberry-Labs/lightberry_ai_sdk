@@ -74,7 +74,7 @@ class LBBasicClient:
         logging.basicConfig(level=getattr(logging, log_level.upper()))
         logger.info(f"LBBasicClient initialized with AEC: {enable_aec}")
         
-    async def connect(self, room_name: Optional[str] = None, participant_name: Optional[str] = None) -> None:
+    async def connect(self, room_name: Optional[str] = None) -> None:
         """
         Connect to LiveKit room.
         
@@ -83,28 +83,27 @@ class LBBasicClient:
         
         Args:
             room_name: Room name for local mode (ignored in remote mode)
-            participant_name: Participant name for local mode (ignored in remote mode)
         
         Raises:
             Exception: If quota is exceeded, displays "Quota reached." message
             Exception: If authentication fails for other reasons
         """
+        # Always generate participant name from device_id
+        participant_name = f"sdk-user-{self.device_id}"
+        
         if self.use_local:
             logger.info("Connecting to local LiveKit server...")
             
-            # Use provided names or generate defaults for local mode
+            # Use provided room name or generate default for local mode
             if not room_name:
                 room_name = "local-room"
-            if not participant_name:
-                participant_name = f"local-user-{self.device_id}"
                 
             # Use local authentication
             auth_func = authenticate_local
         else:
             logger.info("Connecting to Lightberry service...")
             
-            # For remote mode, generate participant name from device_id
-            participant_name = f"sdk-user-{self.device_id}"
+            # For remote mode, room name comes from environment or default
             room_name = os.environ.get("ROOM_NAME", "default-room")
             
             # Use remote authentication
