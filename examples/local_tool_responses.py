@@ -215,6 +215,97 @@ def send_order(customer_name: str = "", special_notes: str = "") -> Dict[str, An
     }
 
 
+# ============== Robot Control Tools ==============
+
+@tool(name="dance_tool", description="Trigger dance motion on robot by simulating joystick button press")
+def dance_tool(**kwargs) -> Dict[str, Any]:
+    """
+    Triggers a dance motion on the robot by publishing a joystick button press to ROS.
+    Simulates pressing button[0] (first button) on the joystick.
+    Accepts any kwargs from the AI agent (like dance_style, duration) but uses fixed button press.
+    """
+    # Log any extra arguments from the AI
+    if kwargs:
+        print(f"🕺 Dance requested with params: {kwargs}")
+    
+    try:
+        import rospy
+        from sensor_msgs.msg import Joy
+        import time
+        
+        # Try to initialize ROS node with disable_signals to avoid threading issues
+        if not rospy.core.is_initialized():
+            try:
+                rospy.init_node('lightberry_joy_publisher', anonymous=True, disable_signals=True)
+                print("✓ ROS node initialized")
+            except Exception as init_error:
+                print(f"⚠️ ROS init warning: {init_error}")
+                # Continue anyway - node might already be initialized
+        
+        # Create publisher for /joy_input topic
+        joy_pub = rospy.Publisher('/joy_input', Joy, queue_size=1)
+        
+        # Use regular time.sleep instead of rospy.sleep to avoid threading issues
+        time.sleep(0.1)
+        
+        # Create Joy message with button[0] pressed
+        joy_msg = Joy()
+        
+        # Try to use rospy.Time if available, otherwise use header without timestamp
+        try:
+            joy_msg.header.stamp = rospy.Time.now()
+        except:
+            # Skip timestamp if ROS time not available
+            pass
+        
+        joy_msg.header.frame_id = "/dev/input/js0"
+        
+        # Set axes (8 axes, all at default positions)
+        joy_msg.axes = [0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0]
+        
+        # Set buttons (11 buttons, first one pressed)
+        joy_msg.buttons = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
+        # Publish button press
+        print("🕺 Triggering dance motion - button press")
+        joy_pub.publish(joy_msg)
+        
+        # Hold button for a moment using regular sleep
+        time.sleep(0.2)
+        
+        # Release button (optional - send all zeros)
+        joy_msg.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        try:
+            joy_msg.header.stamp = rospy.Time.now()
+        except:
+            pass
+        joy_pub.publish(joy_msg)
+        print("🕺 Dance motion triggered - button released")
+        
+        return {
+            "tool": "dance_tool",
+            "success": True,
+            "message": "Dance motion triggered successfully",
+            "button_pressed": 0,
+            "duration_ms": 200
+        }
+        
+    except ImportError:
+        print("❌ ROS not installed or not sourced. Please install ROS and source the setup.bash")
+        return {
+            "tool": "dance_tool", 
+            "success": False,
+            "error": "ROS not available - please install and source ROS environment"
+        }
+    except Exception as e:
+        print(f"❌ Error triggering dance: {e}")
+        return {
+            "tool": "dance_tool",
+            "success": False,
+            "error": str(e)
+        }
+
+
 # ============== Session Control Tools ==============
 
 @tool(name="end_session", description="End the current conversation session")
