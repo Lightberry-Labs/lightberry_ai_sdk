@@ -22,8 +22,7 @@ LIGHTBERRY_API_KEY = os.environ.get("LIGHTBERRY_API_KEY")
 DEFAULT_LIVEKIT_URL = "wss://lb-ub8o0q4v.livekit.cloud"
 
 # Auth API configuration
-#AUTH_API_URL = "https://lightberry.vercel.app/api/authenticate/{}"
-AUTH_API_URL = "https://dev.lightberry.vercel.app/api/authenticate/{}"
+AUTH_API_URL = os.environ.get("AUTH_API_URL", "https://dashboard.lightberry.com/api/authenticate/{}")
 
 logger = logging.getLogger(__name__)
 

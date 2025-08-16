@@ -791,7 +791,7 @@ Audio streaming with tool execution support. Inherits all `LightberryBasicClient
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - LiveKit Python SDK
 - SoundDevice for audio I/O
 - NumPy for audio processing

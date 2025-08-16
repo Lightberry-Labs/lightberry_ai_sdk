@@ -10,11 +10,18 @@ Tools are defined in local_tool_responses.py using the @tool decorator.
 
 import asyncio
 import os
+import argparse
 from dotenv import load_dotenv
 from lightberry_ai import LBToolClient
 
 async def main():
     """Tool-enabled audio streaming example."""
+    
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Tool-enabled audio streaming with Lightberry")
+    parser.add_argument("--livekit-url", type=str, help="Custom LiveKit server URL (e.g., ws://192.168.1.100:7880)")
+    parser.add_argument("--room", type=str, help="Room name to join")
+    args = parser.parse_args()
     
     # Load environment variables
     load_dotenv()
@@ -37,13 +44,17 @@ async def main():
         device_id=device_id,
         device_index=None,        # Use default audio device
         enable_aec=True,          # Enable echo cancellation
-        log_level="WARNING"          # Set logging level
+        log_level="WARNING",      # Set logging level
+        livekit_url_override=args.livekit_url  # Use custom server if provided
     )
     
     try:
         # Connect to Lightberry service
-        print("\nConnecting to Lightberry service...")
-        await client.connect()
+        if args.livekit_url:
+            print(f"\nConnecting to custom server: {args.livekit_url}")
+        else:
+            print("\nConnecting to Lightberry service...")
+        await client.connect(room_name=args.room)
         
         print(f"Connected! Room: {client.room_name}, Participant: {client.participant_name}")
         print(f"Tool channel: {client.data_channel_name}")

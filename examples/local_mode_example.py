@@ -16,7 +16,11 @@ Prerequisites:
 
 import asyncio
 import logging
+import os
 from lightberry_ai import LBBasicClient, LBToolClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure logging to see what's happening
 logging.basicConfig(
@@ -33,12 +37,15 @@ async def test_local_basic_client():
     logger.info("Testing LBBasicClient with local server")
     logger.info("=" * 50)
     
-    # Create client for local mode - no API key or device ID needed!
-    client = LBBasicClient(use_local=True, log_level="WARNING")
+    # Load device ID from environment (optional for local mode, but provides consistent participant naming)
+    device_id = os.getenv("DEVICE_ID", "local-test-device")
+    
+    # Create client for local mode - API key not needed, but device_id gives better participant names
+    client = LBBasicClient(use_local=True, device_id=device_id, log_level="WARNING")
     
     try:
-        # Connect to local server - use "echo-test" to connect with echo bot
-        await client.connect(room_name="echo-test")
+        # Connect to local server - defaults to "lightberry" room
+        await client.connect()
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -62,12 +69,16 @@ async def test_local_tool_client():
     logger.info("Testing LBToolClient with local server")
     logger.info("=" * 50)
     
-    # Create tool client for local mode
-    client = LBToolClient(use_local=True, log_level="WARNING")
+    # Load device ID from environment for consistent participant naming
+    device_id = os.getenv("DEVICE_ID", "local-test-device")
+    
+    # Create tool client for local mode with device ID
+    client = LBToolClient(use_local=True, device_id=device_id, log_level="WARNING")
     
     try:
-        # Connect to local server - use "echo-test" to connect with echo bot
-        await client.connect(room_name="echo-test")
+        # Connect to local server - defaults to "lightberry" room
+        # To connect to echo bot room use: await client.connect(room_name="echo-test")
+        await client.connect()
         
         logger.info(f"Connected to room: {client.room_name}")
         logger.info(f"Participant: {client.participant_name}")
@@ -96,15 +107,18 @@ async def compare_local_vs_remote():
         mode = "LOCAL" if use_local else "REMOTE"
         logger.info(f"\n--- Running in {mode} mode ---")
         
+        # Load environment variables for both modes
+        api_key = os.getenv("LIGHTBERRY_API_KEY", "your_api_key_here")
+        device_id = os.getenv("DEVICE_ID", "local-test-device")
+        
         if use_local:
-            # Local mode - no credentials needed
-            client = LBBasicClient(use_local=True)
+            # Local mode - API key not needed, but device_id provides consistent naming
+            client = LBBasicClient(use_local=True, device_id=device_id)
         else:
-            # Remote mode - requires credentials
-            # These would normally come from environment variables
+            # Remote mode - requires both API key and device ID
             client = LBBasicClient(
-                api_key="your_api_key_here",
-                device_id="your_device_id_here"
+                api_key=api_key,
+                device_id=device_id
             )
         
         try:
@@ -138,14 +152,21 @@ async def main():
     print("\nMake sure the local LiveKit server is running!")
     print("Run './start-all.sh' in the local-livekit directory\n")
     
+    # Show device ID being used
+    device_id = os.getenv("DEVICE_ID", "local-test-device")
+    print(f"Device ID: {device_id}")
+    print(f"Participant name will be: sdk-user-{device_id}\n")
+    
     print("Select an example to run:")
     print("1. Basic Audio Client (local mode)")
     print("2. Tool Client (local mode)")
     print("3. Compare local vs remote code")
     print("q. Quit")
+    print("Using basic client")
     
-    choice = input("\nEnter your choice (1-3 or q): ").strip()
-    
+    #choice = input("\nEnter your choice (1-3 or q): ").strip()
+    choice = "1"    #hardcode to basic client for now for testing
+
     if choice == "1":
         await test_local_basic_client()
     elif choice == "2":

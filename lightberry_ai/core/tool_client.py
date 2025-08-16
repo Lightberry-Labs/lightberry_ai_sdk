@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 # Import the SDK's tool streaming functionality
 from .tool_streaming import main_with_tools
-from ..auth import authenticate, authenticate_local
+from ..auth import authenticate, authenticate_local, get_token_from_custom_server
 
 load_dotenv()
 
@@ -37,6 +37,7 @@ class LBToolClient:
         assistant_name: Optional assistant name to override configured assistant (testing only)
         initial_transcripts: Optional list of transcript dictionaries to initialize conversation history
         session_instructions: Optional instructions to append to the system prompt for this session only
+        livekit_url_override: Optional custom LiveKit server URL (e.g., "ws://192.168.1.100:7880")
     """
     
     def __init__(
@@ -49,10 +50,11 @@ class LBToolClient:
         log_level: str = "INFO",
         assistant_name: Optional[str] = None,
         initial_transcripts: Optional[list] = None,
-        session_instructions: Optional[str] = None
+        session_instructions: Optional[str] = None,
+        livekit_url_override: Optional[str] = None
     ):
         # Validate required parameters based on mode
-        if not use_local and (not api_key or not device_id):
+        if not use_local and not livekit_url_override and (not api_key or not device_id):
             raise ValueError("api_key and device_id are required for remote mode")
         
         self.api_key = api_key
@@ -64,6 +66,7 @@ class LBToolClient:
         self.assistant_name = assistant_name
         self.initial_transcripts = initial_transcripts
         self.session_instructions = session_instructions
+        self.livekit_url_override = livekit_url_override
         
         # Internal configuration
         self._data_channel_name = "tool_calls"  # Fixed channel name
@@ -101,25 +104,25 @@ class LBToolClient:
         
         For remote mode: Authenticates using API key and device ID.
         For local mode: Connects to local LiveKit server.
+        For custom override: Authenticates with API, then connects to custom server.
         
         Args:
-            room_name: Room name for local mode (ignored in remote mode)
+            room_name: Room name (defaults to "lightberry" when using custom override)
         
         Raises:
             Exception: If quota is exceeded, displays "Quota reached." message
             Exception: If authentication fails for other reasons
         """
-        print("[CORE TEST] Core library edits are working!")
         
-        # Always generate participant name from device_id
-        participant_name = f"sdk-user-{self.device_id}"
+        # Always generate participant name from device_id with @device_id suffix
+        participant_name = f"sdk-user-{self.device_id}@{self.device_id}"
         
         if self.use_local:
             logger.info("Connecting to local LiveKit server...")
             
-            # Use provided room name or generate default for local mode
+            # Use provided room name or default to "lightberry"
             if not room_name:
-                room_name = "local-room"
+                room_name = "lightberry"
                 
             # Use local authentication
             auth_func = authenticate_local
@@ -127,29 +130,76 @@ class LBToolClient:
             logger.info("Connecting to Lightberry service...")
             
             # For remote mode, room name comes from environment or default
-            room_name = os.environ.get("ROOM_NAME", "default-room")
+            if not self.livekit_url_override:
+                room_name = os.environ.get("ROOM_NAME", "lightberry")
             
             # Use remote authentication
             auth_func = authenticate
         
         try:
-            # Pass flag indicating if we have initial transcripts
-            has_initial_transcripts = self.initial_transcripts is not None
-            
-            token, room_name, livekit_url = await auth_func(
-                participant_name, 
-                room_name, 
-                self.assistant_name,
-                has_initial_transcripts=has_initial_transcripts,
-                session_instructions=self.session_instructions
-            )
-            
-            self._participant_name = participant_name
-            self._room_name = room_name
-            self._token = token
-            self._livekit_url = livekit_url
-            
-            logger.info(f"Successfully authenticated - Room: {room_name}, Participant: {participant_name}")
+            # If using custom override, we still authenticate with API first
+            if self.livekit_url_override and not self.use_local:
+                # Step 1: Authenticate with Lightberry API to verify credentials
+                print(f"\n🔌 Connecting to custom LiveKit server: {self.livekit_url_override}")
+                print("Step 1: Verifying credentials with Lightberry API...")
+                logger.info("Verifying credentials with Lightberry API...")
+                has_initial_transcripts = self.initial_transcripts is not None
+                
+                # Use dummy room name for API verification
+                api_token, api_room, api_url = await auth_func(
+                    participant_name,
+                    "verification",
+                    self.assistant_name,
+                    has_initial_transcripts=has_initial_transcripts,
+                    session_instructions=self.session_instructions
+                )
+                
+                logger.info("API credentials verified successfully")
+                print("✅ API credentials verified")
+                
+                # Step 2: Use custom server with default room "lightberry" if not specified
+                room_name = room_name or "lightberry"
+                print(f"Step 2: Getting token from custom server...")
+                print(f"  Server: {self.livekit_url_override}")
+                print(f"  Room: {room_name}")
+                logger.info(f"Getting token for custom server: {self.livekit_url_override}")
+                
+                # Step 3: Get token from custom server
+                custom_token = await get_token_from_custom_server(
+                    self.livekit_url_override,
+                    participant_name,
+                    room_name
+                )
+                
+                # Use custom values
+                self._participant_name = participant_name
+                self._room_name = room_name
+                self._token = custom_token
+                self._livekit_url = self.livekit_url_override
+                
+                print(f"✅ Ready to connect with tool support!")
+                print(f"  Final URL: {self.livekit_url_override}")
+                print(f"  Room: {room_name}")
+                print(f"  Participant: {participant_name}\n")
+                logger.info(f"Ready to connect to custom server - Room: {room_name}, URL: {self.livekit_url_override}")
+            else:
+                # Normal flow for local or remote mode
+                has_initial_transcripts = self.initial_transcripts is not None
+                
+                token, room_name, livekit_url = await auth_func(
+                    participant_name, 
+                    room_name, 
+                    self.assistant_name,
+                    has_initial_transcripts=has_initial_transcripts,
+                    session_instructions=self.session_instructions
+                )
+                
+                self._participant_name = participant_name
+                self._room_name = room_name
+                self._token = token
+                self._livekit_url = livekit_url
+                
+                logger.info(f"Successfully authenticated - Room: {room_name}, Participant: {participant_name}")
             
         except Exception as e:
             # Check for quota exceeded (when server side is implemented)
@@ -218,3 +268,8 @@ class LBToolClient:
     def data_channel_name(self) -> str:
         """Get the data channel name used for tool communication."""
         return self._data_channel_name
+    
+    @property
+    def livekit_url(self) -> Optional[str]:
+        """Get the LiveKit server URL being used."""
+        return self._livekit_url

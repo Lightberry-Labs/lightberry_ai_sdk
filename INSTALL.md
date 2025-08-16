@@ -51,7 +51,7 @@ await tool_client.enable_audio()
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - LiveKit Python SDK
 - Audio device access
 - Environment variables set in `.env`
