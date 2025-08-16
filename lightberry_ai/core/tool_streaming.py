@@ -248,13 +248,35 @@ async def main_with_tools(
                 
                 # Process the tool call if it's in executing status
                 if status == "executing" and streamer.tool_server:
+                    # Track processed calls to avoid duplicates
+                    if not hasattr(streamer, 'processed_calls'):
+                        streamer.processed_calls = set()
+                    
+                    # Create a unique call ID from tool name and timestamp
+                    call_id = f"{tool_name}_{time.time()}"
+                    
+                    # Check if we've recently processed this tool
+                    recent_calls = [c for c in streamer.processed_calls if c.startswith(tool_name)]
+                    if recent_calls:
+                        # Check if any recent call was within 1 second
+                        for recent in recent_calls:
+                            try:
+                                _, timestamp = recent.rsplit('_', 1)
+                                if time.time() - float(timestamp) < 1.0:
+                                    print(f"⚠️ Ignoring duplicate {tool_name} call within 1 second")
+                                    continue
+                            except:
+                                pass
+                    
+                    streamer.processed_calls.add(call_id)
+                    
                     # Convert to the format expected by our tool server
                     tool_call_payload = {
                         "name": tool_name,
                         **arguments
                     }
                     
-                    # Process asynchronously
+                    # Process in background WITHOUT blocking audio processing
                     async def process_async():
                         try:
                             response = await streamer.tool_server.process_tool_call(json.dumps(tool_call_payload))
@@ -262,9 +284,12 @@ async def main_with_tools(
                         except Exception as e:
                             logger.error(f"Error processing tool call: {e}")
                     
-                    # Schedule the async processing
-                    if streamer.loop:
-                        asyncio.run_coroutine_threadsafe(process_async(), streamer.loop)
+                    # Fire and forget - don't block on tool execution
+                    asyncio.create_task(process_async())
+                    print(f"✓ Tool {tool_name} execution started (non-blocking)")
+                
+                elif status == "completed":
+                    print(f"✓ Tool call {tool_name} marked as completed by agent")
                         
             else:
                 logger.debug(f"Received data on channel '{topic}': {data.decode('utf-8')}")

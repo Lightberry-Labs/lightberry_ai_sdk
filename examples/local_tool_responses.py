@@ -217,70 +217,83 @@ def send_order(customer_name: str = "", special_notes: str = "") -> Dict[str, An
 
 # ============== Robot Control Tools ==============
 
+# Add tracking dictionary at module level for duplicate prevention
+_tool_call_tracker = {}
+
 @tool(name="dance_tool", description="Trigger dance motion on robot by simulating joystick button press")
-def dance_tool(**kwargs) -> Dict[str, Any]:
+async def dance_tool(**kwargs) -> Dict[str, Any]:
     """
-    Triggers a dance motion on the robot by publishing a joystick button press to ROS.
-    Simulates pressing button[0] (first button) on the joystick.
-    Accepts any kwargs from the AI agent (like dance_style, duration) but uses fixed button press.
+    Async version that triggers dance motion without blocking the event loop.
+    Uses subprocess for non-blocking rostopic calls.
     """
+    import subprocess
+    import json
+    import asyncio
+    import time
+    
+    # Prevent duplicate calls within 1 second
+    current_time = time.time()
+    if 'dance_tool' in _tool_call_tracker:
+        if current_time - _tool_call_tracker['dance_tool'] < 1.0:
+            print("⚠️ Duplicate dance_tool call ignored (within 1 second)")
+            return {
+                "tool": "dance_tool",
+                "success": True,
+                "message": "Duplicate call ignored",
+                "duplicate": True
+            }
+    
+    _tool_call_tracker['dance_tool'] = current_time
+    
     # Log any extra arguments from the AI
     if kwargs:
         print(f"🕺 Dance requested with params: {kwargs}")
     
     try:
-        import rospy
-        from sensor_msgs.msg import Joy
-        import time
+        # Create the Joy message for button press
+        joy_message_press = {
+            "header": {
+                "seq": 0,
+                "stamp": {"secs": 0, "nsecs": 0},
+                "frame_id": "/dev/input/js0"
+            },
+            "axes": [0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0],
+            "buttons": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        }
         
-        # Try to initialize ROS node with disable_signals to avoid threading issues
-        if not rospy.core.is_initialized():
-            try:
-                rospy.init_node('lightberry_joy_publisher', anonymous=True, disable_signals=True)
-                print("✓ ROS node initialized")
-            except Exception as init_error:
-                print(f"⚠️ ROS init warning: {init_error}")
-                # Continue anyway - node might already be initialized
-        
-        # Create publisher for /joy_input topic
-        joy_pub = rospy.Publisher('/joy_input', Joy, queue_size=1)
-        
-        # Use regular time.sleep instead of rospy.sleep to avoid threading issues
-        time.sleep(0.1)
-        
-        # Create Joy message with button[0] pressed
-        joy_msg = Joy()
-        
-        # Try to use rospy.Time if available, otherwise use header without timestamp
-        try:
-            joy_msg.header.stamp = rospy.Time.now()
-        except:
-            # Skip timestamp if ROS time not available
-            pass
-        
-        joy_msg.header.frame_id = "/dev/input/js0"
-        
-        # Set axes (8 axes, all at default positions)
-        joy_msg.axes = [0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0]
-        
-        # Set buttons (11 buttons, first one pressed)
-        joy_msg.buttons = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        
-        # Publish button press
+        # Publish button press using subprocess (non-blocking)
         print("🕺 Triggering dance motion - button press")
-        joy_pub.publish(joy_msg)
+        cmd_press = [
+            "rostopic", "pub", "-1", "/joy_input", "sensor_msgs/Joy",
+            json.dumps(joy_message_press)
+        ]
         
-        # Hold button for a moment using regular sleep
-        time.sleep(0.2)
+        # Use Popen for non-blocking execution
+        process_press = subprocess.Popen(
+            cmd_press, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE
+        )
         
-        # Release button (optional - send all zeros)
-        joy_msg.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        try:
-            joy_msg.header.stamp = rospy.Time.now()
-        except:
-            pass
-        joy_pub.publish(joy_msg)
+        # Wait 200ms asynchronously (doesn't block event loop)
+        await asyncio.sleep(0.2)
+        
+        # Create release message
+        joy_message_release = joy_message_press.copy()
+        joy_message_release["buttons"] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
         print("🕺 Dance motion triggered - button released")
+        cmd_release = [
+            "rostopic", "pub", "-1", "/joy_input", "sensor_msgs/Joy",
+            json.dumps(joy_message_release)
+        ]
+        
+        # Send release command (non-blocking)
+        process_release = subprocess.Popen(
+            cmd_release,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
         
         return {
             "tool": "dance_tool",
@@ -290,12 +303,12 @@ def dance_tool(**kwargs) -> Dict[str, Any]:
             "duration_ms": 200
         }
         
-    except ImportError:
-        print("❌ ROS not installed or not sourced. Please install ROS and source the setup.bash")
+    except FileNotFoundError:
+        print("❌ rostopic command not found - is ROS installed and sourced?")
         return {
-            "tool": "dance_tool", 
+            "tool": "dance_tool",
             "success": False,
-            "error": "ROS not available - please install and source ROS environment"
+            "error": "rostopic not found - please source ROS environment"
         }
     except Exception as e:
         print(f"❌ Error triggering dance: {e}")

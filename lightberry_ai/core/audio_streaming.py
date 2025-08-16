@@ -588,22 +588,41 @@ class AudioStreamer:
                 try:
                     # Check queue size
                     queue_size = self.audio_input_queue.qsize()
-                    if queue_size > 50:
-                        self.logger.warning(f"Audio input queue getting full: {queue_size} items")
                     
-                    # Use the stored loop reference instead of trying to get current loop
-                    self.loop.call_soon_threadsafe(
-                        self.audio_input_queue.put_nowait, capture_frame
-                    )
-                    self.frames_sent_to_livekit += 1
+                    # Check if queue is getting full
+                    if queue_size >= self.audio_input_queue.maxsize:
+                        # Queue is full - drop the oldest frame to make room
+                        try:
+                            self.loop.call_soon_threadsafe(self.audio_input_queue.get_nowait)
+                            if not hasattr(self, 'frames_dropped'):
+                                self.frames_dropped = 0
+                            self.frames_dropped += 1
+                            if self.frames_dropped % 100 == 0:
+                                self.logger.debug(f"Dropped {self.frames_dropped} audio frames due to full queue")
+                        except:
+                            pass  # Couldn't drop frame, skip this one
+                    elif queue_size > 50:
+                        # Just log a warning when getting full
+                        if self.frames_sent_to_livekit % 100 == 0:
+                            self.logger.debug(f"Audio queue size: {queue_size} items")
                     
-                    if self.frames_sent_to_livekit <= 5:
-                        self.logger.info(f"Sent frame {self.frames_sent_to_livekit} to LiveKit queue")
+                    # Try to add the frame
+                    try:
+                        self.loop.call_soon_threadsafe(
+                            self.audio_input_queue.put_nowait, capture_frame
+                        )
+                        self.frames_sent_to_livekit += 1
+                        
+                        if self.frames_sent_to_livekit <= 5:
+                            self.logger.info(f"Sent frame {self.frames_sent_to_livekit} to LiveKit queue")
+                    except:
+                        # If we still can't add it after dropping, just skip this frame
+                        pass
                         
                 except Exception as e:
-                    # Queue might be full or event loop might be closed
-                    if self.frames_processed <= 10:
-                        self.logger.warning(f"Failed to queue audio frame: {e}")
+                    # Other exceptions - log only occasionally
+                    if self.frames_processed <= 10 or self.frames_processed % 1000 == 0:
+                        self.logger.debug(f"Audio frame handling issue: {e}")
             else:
                 if self.frames_processed <= 5:
                     self.logger.error("No valid event loop available for queuing audio frame")

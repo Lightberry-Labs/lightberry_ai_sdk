@@ -99,7 +99,7 @@ cd ../local-livekit
 This starts:
 - LiveKit server on `ws://localhost:7880`
 - Token server on `http://localhost:8090`
-- Echo bot for testing (optional)
+- Echo bot for testing in room "echo-test"
 
 ### Basic Usage
 
@@ -109,7 +109,7 @@ from lightberry_ai import LBBasicClient
 
 async def main():
     # Create client in local mode - no API key or device ID needed!
-    client = LBBasicClient(use_local=True)
+    client = LBBasicClient(use_local=True, log_level="WARNING")
     
     # Connect to echo-test room to interact with the echo bot
     await client.connect(room_name="echo-test")
@@ -119,6 +119,8 @@ async def main():
 asyncio.run(main())
 ```
 
+**Note:** Use `log_level="WARNING"` to prevent verbose logging output that can interfere with audio interaction.
+
 ### Tool Client in Local Mode
 
 ```python
@@ -126,7 +128,7 @@ from lightberry_ai import LBToolClient
 
 async def main():
     # Tool client also supports local mode
-    client = LBToolClient(use_local=True, log_level="INFO")
+    client = LBToolClient(use_local=True, log_level="WARNING")
     
     # Connect to echo-test room (or create your own room)
     await client.connect(room_name="echo-test")
@@ -144,7 +146,7 @@ The beauty of local mode is that the same code can work for both local and remot
 async def run_client(use_local: bool = False):
     if use_local:
         # Local mode - no credentials needed
-        client = LBBasicClient(use_local=True)
+        client = LBBasicClient(use_local=True, log_level="WARNING")
         await client.connect(room_name="echo-test")
     else:
         # Remote mode - uses API credentials
@@ -165,6 +167,24 @@ await run_client(use_local=True)
 await run_client(use_local=False)
 ```
 
+### Echo Bot Testing
+
+The local LiveKit setup includes an echo bot that echoes back any audio it receives. This is perfect for testing audio connectivity:
+
+1. **Start the echo bot** (automatically started with `./start-all.sh`):
+   ```bash
+   cd ../local-livekit
+   python audio_echo_test.py
+   ```
+
+2. **Connect your SDK client** to the "echo-test" room:
+   ```python
+   client = LBBasicClient(use_local=True, log_level="WARNING")
+   await client.connect(room_name="echo-test")  # Must be "echo-test"!
+   ```
+
+3. **Speak into your microphone** - you should hear your voice echoed back
+
 ### Local Mode Benefits
 
 - **No API keys required** - Perfect for development
@@ -172,6 +192,7 @@ await run_client(use_local=False)
 - **Fast iteration** - No network latency
 - **Full debugging** - Access to all server logs
 - **Same SDK interface** - Code works identically
+- **Echo bot included** - Test audio without AI agents
 
 ### Local Mode Limitations
 
@@ -179,6 +200,18 @@ await run_client(use_local=False)
 - **Manual server setup** - Must start LiveKit server separately
 - **Local only** - Can't connect from other devices
 - **No persistence** - Rooms are temporary
+
+### Troubleshooting Local Mode
+
+**Echo bot not responding:**
+- Ensure you're connecting to room "echo-test" (not "test-room" or other names)
+- Check the echo bot is running (should show "Echo bot is running" in its terminal)
+- Use `log_level="WARNING"` to avoid jumbled output
+
+**Connection errors:**
+- Verify LiveKit server is running on port 7880
+- Check token server is running on port 8090
+- Ensure no firewall is blocking local connections
 
 ### Example: Local Mode Testing
 

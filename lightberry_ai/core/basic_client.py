@@ -89,7 +89,12 @@ class LBBasicClient:
             Exception: If authentication fails for other reasons
         """
         # Always generate participant name from device_id
-        participant_name = f"sdk-user-{self.device_id}"
+        if self.use_local:
+            # For local mode, match the format used by remote mode: add @device_id suffix
+            participant_name = f"sdk-user-{self.device_id}@{self.device_id}"
+        else:
+            # For remote mode, use simple format (server may add suffix)
+            participant_name = f"sdk-user-{self.device_id}"
         
         if self.use_local:
             logger.info("Connecting to local LiveKit server...")
