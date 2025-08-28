@@ -21,6 +21,7 @@ async def main():
     parser = argparse.ArgumentParser(description="Tool-enabled audio streaming with Lightberry")
     parser.add_argument("--livekit-url", type=str, help="Custom LiveKit server URL (e.g., ws://192.168.1.100:7880)")
     parser.add_argument("--room", type=str, help="Room name to join")
+    parser.add_argument("--device-index", type=int, default=None, help="Audio device index (use list_audio_devices.py to find)")
     args = parser.parse_args()
     
     # Load environment variables
@@ -42,7 +43,7 @@ async def main():
     client = LBToolClient(
         api_key=api_key,
         device_id=device_id,
-        device_index=None,        # Use default audio device
+        device_index=args.device_index,  # Use specified audio device or default
         enable_aec=True,          # Enable echo cancellation
         log_level="WARNING",      # Set logging level
         livekit_url_override=args.livekit_url  # Use custom server if provided
