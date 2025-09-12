@@ -360,8 +360,57 @@ async def main_with_tools(
             asyncio.create_task(send_transcripts())
 
     @room.on("disconnected")
-    def on_disconnected(reason):
+    async def on_disconnected(reason):
         logger.info(f"Disconnected from LiveKit room: {reason}")
+        
+        # Check if we should attempt reconnection
+        if streamer.running and not streamer.is_reconnecting and streamer.reconnect_attempts < streamer.max_reconnect_attempts:
+            streamer.is_reconnecting = True
+            streamer.reconnect_attempts += 1
+            
+            logger.info(f"Attempting to reconnect (attempt {streamer.reconnect_attempts}/{streamer.max_reconnect_attempts})...")
+            
+            try:
+                # Re-authenticate to get a fresh token
+                if streamer.auth_params:
+                    token, room_name, livekit_url = await streamer.auth_params['auth_func'](
+                        streamer.auth_params['participant_name'],
+                        streamer.auth_params['fallback_room']
+                    )
+                    
+                    logger.info("Got fresh token, reconnecting to room...")
+                    
+                    # Reconnect to the room
+                    await room.connect(livekit_url, token)
+                    logger.info("Successfully reconnected to LiveKit room")
+                    
+                    # Re-publish microphone track
+                    logger.info("Re-publishing microphone track...")
+                    track = rtc.LocalAudioTrack.create_audio_track("mic", streamer.source)
+                    options = rtc.TrackPublishOptions()
+                    options.source = rtc.TrackSource.SOURCE_MICROPHONE
+                    publication = await room.local_participant.publish_track(track, options)
+                    logger.info("Re-published track %s", publication.sid)
+                    
+                    # Re-register RPC methods for tools
+                    logger.info("Re-registering RPC methods...")
+                    room.local_participant.register_rpc_method("tool_call")(handle_tool_call)
+                    
+                    streamer.is_reconnecting = False
+                else:
+                    logger.error("No auth parameters stored for reconnection")
+                    streamer.running = False
+                    
+            except Exception as e:
+                logger.error(f"Reconnection failed: {e}")
+                streamer.running = False
+                streamer.is_reconnecting = False
+        else:
+            if not streamer.running:
+                logger.info("Client is shutting down, not attempting reconnection")
+            elif streamer.reconnect_attempts >= streamer.max_reconnect_attempts:
+                logger.error("Max reconnection attempts reached, stopping client")
+                streamer.running = False
     
     @room.on("data_received")
     def on_data_received(data_packet):
@@ -492,8 +541,16 @@ async def main_with_tools(
                 auth_func = authenticate
                 logger.info("Using remote authentication")
             
-            token, room_name, livekit_url = await auth_func(participant_name, stream_audio.ROOM_NAME or "default-room")
+            fallback_room = stream_audio.ROOM_NAME or "default-room"
+            token, room_name, livekit_url = await auth_func(participant_name, fallback_room)
             logger.info(f"Generated new token for participant: {participant_name}")
+            
+            # Store auth params for potential reconnection
+            streamer.auth_params = {
+                'auth_func': auth_func,
+                'participant_name': participant_name,
+                'fallback_room': fallback_room
+            }
         
         await room.connect(livekit_url, token)
         logger.info("connected to room %s", room.name)
