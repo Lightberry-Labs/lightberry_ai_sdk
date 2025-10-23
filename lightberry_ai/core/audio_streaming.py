@@ -332,9 +332,9 @@ class AudioStreamer:
             self.logger.info("Initializing Audio Processing Module with Echo Cancellation")
             self.audio_processor = apm.AudioProcessingModule(
                 echo_cancellation=True,
-                noise_suppression=True,
+                noise_suppression=False,
                 high_pass_filter=True,
-                auto_gain_control=True
+                auto_gain_control=False
             )
         
         # Audio buffers and synchronization
