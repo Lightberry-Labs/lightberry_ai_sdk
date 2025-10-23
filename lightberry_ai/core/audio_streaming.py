@@ -39,7 +39,7 @@ ROOM_NAME = os.environ.get("ROOM_NAME")
 SAMPLE_RATE = 48000  # 48kHz to match DC Microphone native rate
 NUM_CHANNELS = 1
 FRAME_SAMPLES = 480  # 10ms at 48kHz - required for APM
-BLOCKSIZE = 4800  # 100ms buffer
+BLOCKSIZE = 1440  # 30ms buffer
 
 # dB meter settings
 MAX_AUDIO_BAR = 20 # 20 chars wide
@@ -340,7 +340,7 @@ class AudioStreamer:
         # Audio buffers and synchronization
         self.output_buffer = bytearray()
         self.output_lock = threading.Lock()
-        self.audio_input_queue = asyncio.Queue(maxsize=100)  # Prevent memory buildup
+        self.audio_input_queue = asyncio.Queue(maxsize=30)  # Prevent memory buildup
         
         # Timing and delay tracking for AEC
         self.output_delay = 0.0
@@ -598,6 +598,10 @@ class AudioStreamer:
                     # Check if queue is getting full
                     if queue_size >= self.audio_input_queue.maxsize:
                         # Queue is full - drop the oldest frame to make room
+                        self.logger.warning(f"Audio input queue is full - dropping newest frame at {time.monotonic_ns()}")
+                        self.logger.warning(f"Queue size: {queue_size}")
+                        self.logger.warning(f"Max size: {self.audio_input_queue.maxsize}")
+                        return
                         try:
                             self.loop.call_soon_threadsafe(self.audio_input_queue.get_nowait)
                             if not hasattr(self, 'frames_dropped'):
@@ -607,7 +611,7 @@ class AudioStreamer:
                                 self.logger.debug(f"Dropped {self.frames_dropped} audio frames due to full queue")
                         except:
                             pass  # Couldn't drop frame, skip this one
-                    elif queue_size > 50:
+                    elif queue_size > 10:
                         # Just log a warning when getting full
                         if self.frames_sent_to_livekit % 100 == 0:
                             self.logger.debug(f"Audio queue size: {queue_size} items")
@@ -1049,6 +1053,9 @@ async def main(participant_name: str, enable_aec: bool = True, initial_transcrip
                         track = rtc.LocalAudioTrack.create_audio_track("mic", streamer.source)
                         options = rtc.TrackPublishOptions()
                         options.source = rtc.TrackSource.SOURCE_MICROPHONE
+                        options.dtx = False
+                        options.red = True       
+                        options.audio_encoding = rtc              
                         publication = await room.local_participant.publish_track(track, options)
                         logger.info("Re-published track %s", publication.sid)
                         
