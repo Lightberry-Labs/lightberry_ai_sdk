@@ -936,6 +936,8 @@ async def main(participant_name: str, enable_aec: bool = True, initial_transcrip
                     rms = np.sqrt(np.mean(audio_samples.astype(np.float32) ** 2))
                     max_int16 = np.iinfo(np.int16).max
                     participant_db = 20.0 * np.log10(rms / max_int16 + 1e-6)
+                    if participant_db < -65.0: 
+                        continue # skip silent frames
                     
                     # Update participant info
                     with streamer.participants_lock:
